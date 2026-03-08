@@ -193,6 +193,27 @@ export default function DashboardPage() {
                         </Link>
                     </motion.div>
                 </div>
+
+                {/* Referral Invite Section */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                    className="glass mt-6 flex flex-col sm:flex-row items-center gap-5 relative overflow-hidden">
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(0,240,255,0.03))' }} />
+                    <div className="flex-1 relative z-10">
+                        <h3 className="text-lg font-semibold mb-1">🎁 Invite Friends, Get Credits!</h3>
+                        <p className="text-white/35 text-sm font-light">
+                            Share your referral link. Get <span className="text-[#00f0ff] font-medium">50 free credits</span> when they sign up.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            const link = `https://scraper.skillbridgeladder.in/login?ref=${user?.id?.slice(0, 8)}`
+                            navigator.clipboard.writeText(link)
+                            alert('Referral link copied!')
+                        }}
+                        className="btn-glow !py-3 !px-6 !text-[13px] relative z-10 whitespace-nowrap shrink-0">
+                        📋 Copy Referral Link
+                    </button>
+                </motion.div>
             </div>
         </div>
     )
