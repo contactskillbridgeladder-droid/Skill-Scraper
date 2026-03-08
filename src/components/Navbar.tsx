@@ -53,6 +53,10 @@ export default function Navbar() {
                         className={`text-sm font-medium transition-colors hidden md:block ${pathname === '/download' ? 'text-white' : 'text-white/45 hover:text-white'}`}>
                         Download
                     </Link>
+                    <Link href="/contact"
+                        className={`text-sm font-medium transition-colors hidden md:block ${pathname === '/contact' ? 'text-white' : 'text-white/45 hover:text-white'}`}>
+                        Support
+                    </Link>
                     <Link href="/login"
                         className="text-sm font-medium text-white/45 hover:text-white transition-colors hidden md:block">
                         Log In

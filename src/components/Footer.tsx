@@ -24,7 +24,7 @@ export default function Footer() {
                         <Link href="/download" className="hover:text-white transition-colors">Download</Link>
                         <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
                         <Link href="/help" className="hover:text-white transition-colors">Help</Link>
-                        <a href="mailto:contact.skillbridgeladder@gmail.com" className="hover:text-white transition-colors">Support</a>
+                        <Link href="/contact" className="hover:text-white transition-colors">Support</Link>
                     </div>
                 </div>
                 <p className="mt-8 text-center text-[11px] text-white/15 font-light">

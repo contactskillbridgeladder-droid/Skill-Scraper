@@ -58,11 +58,21 @@ export default function DownloadPage() {
                             <div className="text-4xl mb-5" style={{ animation: 'float-up 3s ease-in-out infinite' }}>⬇️</div>
                             <h3 className="text-2xl font-bold mb-3">Ready to scrape?</h3>
                             <p className="text-white/35 font-light mb-8 text-[15px]">
-                                Free to install. 200 export credits included.
+                                Free to install. Latest fixes included.
                             </p>
-                            <a href="/skill-scraper-v1.7.3.zip" download className="btn-glow !text-[17px] !py-4 !px-12">
-                                Download Extension (v1.7.3)
+                            <a href="/skill-scraper-v1.7.3.zip" download className="btn-glow !text-[17px] !py-4 !px-12 w-full sm:w-auto">
+                                Download Extension (v1.7.3) - Latest
                             </a>
+
+                            <div className="mt-8 pt-6 border-t border-white/10">
+                                <h4 className="text-[14px] text-white/50 mb-3 font-medium">Previous Versions</h4>
+                                <div className="flex flex-col gap-2 w-full max-w-[240px] mx-auto">
+                                    <a href="/skill-scraper-v1.7.2.zip" download className="text-[13px] py-2 px-4 rounded-md bg-white/5 hover:bg-white/10 text-white/70 transition-colors border border-white/5 flex justify-between items-center">
+                                        <span>v1.7.2</span>
+                                        <span className="text-[11px] opacity-50">.zip</span>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
 
