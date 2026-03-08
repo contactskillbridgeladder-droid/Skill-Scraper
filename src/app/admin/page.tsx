@@ -70,15 +70,8 @@ export default function AdminPage() {
         const { data } = await query
 
         if (data) {
-            const enriched = await Promise.all(data.map(async (p) => {
-                try {
-                    const { data: userData } = await supabase.auth.admin.getUserById(p.user_id)
-                    return { ...p, user_email: (userData as any)?.user?.email || 'Unknown' }
-                } catch {
-                    return { ...p, user_email: 'Unknown' }
-                }
-            }))
-            setPayments(enriched)
+            // user_email is now stored directly in the table
+            setPayments(data.map(p => ({ ...p, user_email: p.user_email || 'Unknown' })))
         }
         setLoading(false)
     }

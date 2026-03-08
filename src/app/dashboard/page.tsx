@@ -16,6 +16,7 @@ interface UserPlan {
 export default function DashboardPage() {
     const [user, setUser] = useState<{ email?: string; id?: string } | null>(null)
     const [plan, setPlan] = useState<UserPlan | null>(null)
+    const [pendingPayment, setPendingPayment] = useState<{ plan_requested: string; created_at: string } | null>(null)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
@@ -30,6 +31,17 @@ export default function DashboardPage() {
 
         const { data } = await supabase.from('user_plans').select('*').eq('user_id', user.id).single()
         setPlan(data || { plan: 'free', quota: 200, used: 0 })
+
+        // Check for pending payments
+        const { data: pendingData } = await supabase.from('payment_requests')
+            .select('plan_requested, created_at')
+            .eq('user_id', user.id)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+        if (pendingData) setPendingPayment(pendingData)
+
         setLoading(false)
     }
 
@@ -77,6 +89,25 @@ export default function DashboardPage() {
                         Here&apos;s an overview of your current usage and plan details.
                     </p>
                 </motion.div>
+
+                {/* Pending Payment Banner */}
+                {pendingPayment && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 rounded-2xl p-5 flex items-center gap-4 border border-yellow-500/20"
+                        style={{ background: 'rgba(255, 180, 0, 0.06)' }}>
+                        <div className="text-3xl">⏳</div>
+                        <div className="flex-1">
+                            <div className="text-yellow-400 font-semibold text-sm mb-0.5">Payment Under Review</div>
+                            <p className="text-white/35 text-xs font-light">
+                                Your <span className="text-white/60 font-medium">{PLANS[pendingPayment.plan_requested as keyof typeof PLANS]?.name || pendingPayment.plan_requested}</span> upgrade
+                                is being verified. This usually takes 1-24 hours.
+                            </p>
+                        </div>
+                        <div className="text-xs text-white/20 shrink-0">
+                            {new Date(pendingPayment.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </div>
+                    </motion.div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mb-8">
                     {/* Usage Card */}

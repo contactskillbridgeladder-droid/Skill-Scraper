@@ -61,6 +61,7 @@ function UploadPaymentContent() {
 
             const { error: insertError } = await supabase.from('payment_requests').insert({
                 user_id: user.id,
+                user_email: user.email || '',
                 plan_requested: planRequested,
                 amount: PLANS[planRequested]?.price || 0,
                 transaction_id: transactionId,
