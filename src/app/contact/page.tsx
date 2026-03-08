@@ -5,13 +5,40 @@ import { useState } from 'react'
 
 export default function ContactPage() {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [errorMsg, setErrorMsg] = useState('');
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setStatus('loading');
-        // In a real implementation this would send to an API endpoint
-        // For now, we simulate a successful submission
-        setTimeout(() => setStatus('success'), 1500);
+        setErrorMsg('');
+
+        const form = e.currentTarget;
+        const formData = new FormData(form);
+
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: formData.get('name'),
+                    email: formData.get('email'),
+                    category: formData.get('category'),
+                    message: formData.get('message'),
+                    transaction_id: formData.get('transaction_id') || null,
+                })
+            });
+
+            if (res.ok) {
+                setStatus('success');
+            } else {
+                const err = await res.json();
+                setErrorMsg(err.error || 'Failed to submit');
+                setStatus('error');
+            }
+        } catch {
+            setErrorMsg('Network error. Please try again.');
+            setStatus('error');
+        }
     }
 
     return (
@@ -38,7 +65,7 @@ export default function ContactPage() {
                             <div className="text-center py-10">
                                 <div className="text-5xl mb-4">✅</div>
                                 <h3 className="text-xl font-bold mb-2">Message Sent!</h3>
-                                <p className="text-white/50 mb-6">We'll get back to you as soon as possible.</p>
+                                <p className="text-white/50 mb-6">We&apos;ll get back to you as soon as possible.</p>
                                 <button onClick={() => setStatus('idle')} className="btn-glow !py-3 px-8 text-sm">
                                     Send Another Message
                                 </button>
@@ -48,19 +75,19 @@ export default function ContactPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     <div className="flex flex-col gap-2">
                                         <label className="text-sm text-white/70 font-medium px-1">Name</label>
-                                        <input required type="text" placeholder="John Doe"
+                                        <input required name="name" type="text" placeholder="John Doe"
                                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-all" />
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label className="text-sm text-white/70 font-medium px-1">Email</label>
-                                        <input required type="email" placeholder="john@company.com"
+                                        <input required name="email" type="email" placeholder="john@company.com"
                                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-all" />
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-2">
                                     <label className="text-sm text-white/70 font-medium px-1">Category</label>
-                                    <select required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all cursor-pointer appearance-none">
+                                    <select required name="category" className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all cursor-pointer appearance-none">
                                         <option value="support">Technical Support</option>
                                         <option value="billing">Billing Question</option>
                                         <option value="bug">Report a Bug</option>
@@ -70,10 +97,18 @@ export default function ContactPage() {
                                 </div>
 
                                 <div className="flex flex-col gap-2">
+                                    <label className="text-sm text-white/70 font-medium px-1">Transaction ID <span className="text-white/30">(optional)</span></label>
+                                    <input name="transaction_id" type="text" placeholder="e.g. 412345678901"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-all" />
+                                </div>
+
+                                <div className="flex flex-col gap-2">
                                     <label className="text-sm text-white/70 font-medium px-1">Message</label>
-                                    <textarea required rows={5} placeholder="How can we help you?"
+                                    <textarea required name="message" rows={5} placeholder="How can we help you?"
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-all resize-none"></textarea>
                                 </div>
+
+                                {status === 'error' && <p className="text-red-400 text-sm">{errorMsg}</p>}
 
                                 <button type="submit" disabled={status === 'loading'}
                                     className="btn-glow !py-4 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
