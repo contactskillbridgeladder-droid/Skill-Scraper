@@ -13,40 +13,42 @@ const faqs = [
 
 export default function HelpPage() {
     return (
-        <div className="relative min-h-screen">
-            <div className="bg-dots" />
-
-            <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-                <Link href="/" className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xl font-bold text-white">S</div>
-                    <span className="text-xl font-bold gradient-text">Skill Scraper</span>
-                </Link>
-                <Link href="/dashboard" className="btn btn-outline text-sm py-2 px-4">← Dashboard</Link>
-            </nav>
-
-            <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
-                <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-black mb-4 gradient-text text-center">Help Center</motion.h1>
-                <p className="text-center text-gray-400 mb-12">Need help? Find answers to common questions here or contact support.</p>
-
-                <div className="grid gap-6">
-                    {faqs.map((faq, i) => (
-                        <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-                            className="glass-card p-6 border-white/5 hover:border-cyan-500/20 transition">
-                            <h3 className="text-lg font-bold text-white mb-2">{faq.q}</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed">{faq.a}</p>
-                        </motion.div>
-                    ))}
+        <>
+            <section className="w-full" style={{ paddingTop: '160px', paddingBottom: '40px' }}>
+                <div className="container-main text-center">
+                    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+                        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }} className="font-black tracking-[-0.03em] mb-4">
+                            Help <span className="text-grad-cyan">Center</span>
+                        </h1>
+                        <p className="text-white/35 text-[16px] font-light max-w-[480px] mx-auto">
+                            Need help? Find answers to common questions here or contact support.
+                        </p>
+                    </motion.div>
                 </div>
+            </section>
 
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-                    className="mt-16 glass-card p-10 text-center glow-blue">
-                    <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
-                    <p className="text-gray-400 mb-8">Our support team is always here to help you scaling your business.</p>
-                    <a href="mailto:contact.skillbridgeladder@gmail.com" className="btn btn-primary px-10 py-4">
-                        📧 Email Support
-                    </a>
-                </motion.div>
-            </div>
-        </div>
+            <section className="w-full" style={{ paddingBottom: '80px' }}>
+                <div className="container-main" style={{ maxWidth: '800px' }}>
+                    <div className="grid gap-5">
+                        {faqs.map((faq, i) => (
+                            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+                                className="glass">
+                                <h3 className="text-lg font-bold text-white mb-2">{faq.q}</h3>
+                                <p className="text-white/40 text-sm leading-relaxed font-light">{faq.a}</p>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                        className="glass mt-12 text-center !border-[var(--border-accent)] shadow-[0_0_30px_rgba(0,240,255,0.06)]">
+                        <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
+                        <p className="text-white/35 font-light mb-6">Our support team is always here to help you.</p>
+                        <Link href="/contact" className="btn-glow !px-10">
+                            📧 Contact Support
+                        </Link>
+                    </motion.div>
+                </div>
+            </section>
+        </>
     )
 }
