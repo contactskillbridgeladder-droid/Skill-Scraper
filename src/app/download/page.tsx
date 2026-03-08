@@ -60,8 +60,8 @@ export default function DownloadPage() {
                             <p className="text-white/35 font-light mb-8 text-[15px]">
                                 Free to install. 200 export credits included.
                             </p>
-                            <a href="/skill-scraper.zip" download className="btn-glow !text-[17px] !py-4 !px-12">
-                                Download Extension (.zip)
+                            <a href="/skill-scraper-v1.7.3.zip" download className="btn-glow !text-[17px] !py-4 !px-12">
+                                Download Extension (v1.7.3)
                             </a>
                         </div>
                     </motion.div>
