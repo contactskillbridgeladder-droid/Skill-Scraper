@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════
+   SKILL SCRAPER — Design System v3
+   Tailwind v4 + Next.js App Router
+   ══════════════════════════════════════════ */
+
+:root {
+  --bg: #030014;
+  --accent: #00f0ff;
+  --accent2: #7c3aed;
+  --surface: rgba(10, 10, 25, 0.6);
+  --surface-hover: rgba(18, 18, 40, 0.75);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-accent: rgba(0, 240, 255, 0.22);
+}
+
+/* ── Reset ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: #fff;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--accent2);
+  color: #fff;
+}
+
+/* ── Background FX ── */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-size: 60px 60px;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 75%);
+}
+
+.glow-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(150px);
+  opacity: 0.18;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.glow-orb-1 {
+  background: var(--accent);
+  width: 28vw;
+  height: 28vw;
+  top: -6vw;
+  left: -3vw;
+}
+
+.glow-orb-2 {
+  background: var(--accent2);
+  width: 32vw;
+  height: 32vw;
+  bottom: -10vw;
+  right: -3vw;
+}
+
+/* ── Glass Surface ── */
+.glass {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+}
+
+.glass:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 8px 36px rgba(0, 240, 255, 0.08);
+  transform: translateY(-3px);
+}
+
+
+/* ── Text Gradients ── */
+.text-grad {
+  background: linear-gradient(135deg, #e0e7ff 0%, #818cf8 50%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-grad-cyan {
+  background: linear-gradient(135deg, var(--accent), #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Buttons ── */
+.btn-glow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 32px;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 15px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.25);
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 38px rgba(0, 240, 255, 0.5);
+  transform: scale(1.03);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 28px;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Form Inputs ── */
+.input-field {
+  width: 100%;
+  padding: 13px 16px;
+  background: rgba(3, 0, 20, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.12);
+}
+
+/* ── Animations ── */
+@keyframes float-up {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes float-slow {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent2);
+}
+
+/* ── Content Container (centering fix) ── */
+.container-main {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+@media (min-width: 640px) {
+  .container-main {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
