@@ -19,7 +19,7 @@ interface PaymentRequest {
 }
 
 // ADMIN EMAILS
-const ADMIN_EMAILS = ['contact.skillbridgeladder@gmail.com']
+const ADMIN_EMAILS = ['contact.skillbridgeladder@gmail.com', 'skillbridgeladder@gmail.com']
 
 export default function AdminPage() {
     const [payments, setPayments] = useState<PaymentRequest[]>([])
