@@ -18,6 +18,15 @@ interface PaymentRequest {
     user_email?: string
 }
 
+interface UserPlan {
+    id: string
+    user_id: string
+    plan: string
+    quota: number
+    used: number
+    created_at: string
+}
+
 interface DashStats {
     totalUsers: number
     totalPayments: number
@@ -30,11 +39,17 @@ const ADMIN_EMAILS = ['contact.skillbridgeladder@gmail.com', 'skillbridgeladder@
 
 export default function AdminPage() {
     const [payments, setPayments] = useState<PaymentRequest[]>([])
+    const [users, setUsers] = useState<(UserPlan & { email?: string })[]>([])
     const [loading, setLoading] = useState(true)
     const [isAdmin, setIsAdmin] = useState(false)
+    const [tab, setTab] = useState<'payments' | 'users'>('payments')
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
     const [stats, setStats] = useState<DashStats>({ totalUsers: 0, totalPayments: 0, pendingPayments: 0, totalRevenue: 0 })
     const [previewImg, setPreviewImg] = useState<string | null>(null)
+    const [editingUser, setEditingUser] = useState<string | null>(null)
+    const [editQuota, setEditQuota] = useState('')
+    const [editUsed, setEditUsed] = useState('')
+    const [editPlan, setEditPlan] = useState('')
     const [manualEmail, setManualEmail] = useState('')
     const [manualCredits, setManualCredits] = useState('')
     const [manualMsg, setManualMsg] = useState('')
@@ -49,6 +64,7 @@ export default function AdminPage() {
         setIsAdmin(true)
         fetchPayments()
         fetchStats()
+        fetchUsers()
     }
 
     async function fetchStats() {
@@ -68,12 +84,21 @@ export default function AdminPage() {
         let query = supabase.from('payment_requests').select('*').order('created_at', { ascending: false })
         if (filter !== 'all') query = query.eq('status', filter)
         const { data } = await query
-
         if (data) {
-            // user_email is now stored directly in the table
             setPayments(data.map(p => ({ ...p, user_email: p.user_email || 'Unknown' })))
         }
         setLoading(false)
+    }
+
+    async function fetchUsers() {
+        const { data } = await supabase.from('user_plans').select('*').order('created_at', { ascending: false })
+        if (data) {
+            // Try to get emails from payment_requests for each user
+            const { data: allPayments } = await supabase.from('payment_requests').select('user_id, user_email')
+            const emailMap: Record<string, string> = {}
+            allPayments?.forEach(p => { if (p.user_email) emailMap[p.user_id] = p.user_email })
+            setUsers(data.map(u => ({ ...u, email: emailMap[u.user_id] || '' })))
+        }
     }
 
     useEffect(() => { if (isAdmin) fetchPayments() }, [filter, isAdmin])
@@ -85,10 +110,16 @@ export default function AdminPage() {
         if (plan) {
             const { data: currentPlan } = await supabase.from('user_plans').select('*').eq('user_id', payment.user_id).single()
             const newQuota = (currentPlan?.quota || 200) + plan.quota
-            await supabase.from('user_plans').upsert({ user_id: payment.user_id, plan: payment.plan_requested, quota: newQuota })
+            await supabase.from('user_plans').upsert({
+                user_id: payment.user_id,
+                plan: payment.plan_requested,
+                quota: newQuota,
+                used: currentPlan?.used || 0
+            })
         }
         fetchPayments()
         fetchStats()
+        fetchUsers()
     }
 
     async function handleReject(paymentId: string) {
@@ -98,37 +129,66 @@ export default function AdminPage() {
         fetchStats()
     }
 
+    async function handleEditUser(userId: string) {
+        const quota = parseInt(editQuota)
+        const used = parseInt(editUsed)
+        if (isNaN(quota) || isNaN(used)) return
+
+        await supabase.from('user_plans').update({
+            plan: editPlan,
+            quota,
+            used
+        }).eq('user_id', userId)
+
+        setEditingUser(null)
+        fetchUsers()
+        fetchStats()
+    }
+
+    async function handleAddCredits(userId: string, currentQuota: number) {
+        const extra = prompt('How many credits to add?')
+        if (!extra) return
+        const num = parseInt(extra)
+        if (isNaN(num) || num <= 0) return
+
+        await supabase.from('user_plans').update({ quota: currentQuota + num }).eq('user_id', userId)
+        fetchUsers()
+        fetchStats()
+    }
+
     async function handleManualCredits() {
         if (!manualEmail || !manualCredits) return
         setManualMsg('')
-        try {
-            // Find the user by email using user_plans + auth lookup
-            const { data: users } = await supabase.from('user_plans').select('*')
-            // We need to find user by email - use a different approach
-            const credits = parseInt(manualCredits)
-            if (isNaN(credits) || credits <= 0) { setManualMsg('❌ Enter valid credit number'); return }
+        const credits = parseInt(manualCredits)
+        if (isNaN(credits) || credits <= 0) { setManualMsg('❌ Enter valid credit number'); return }
 
-            // Use RPC or direct lookup - for now search payment_requests for user email
-            const { data: allPayments } = await supabase.from('payment_requests').select('user_id').limit(1000)
-            // Find user_id by checking auth
-            // Simpler: just upsert by searching
-            const res = await fetch(`/api/ext/admin-credits`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: manualEmail, credits })
-            })
-            if (res.ok) {
-                setManualMsg(`✅ Added ${credits} credits to ${manualEmail}`)
-                setManualEmail('')
-                setManualCredits('')
-                fetchStats()
-            } else {
-                const err = await res.json()
-                setManualMsg(`❌ ${err.error || 'Failed'}`)
-            }
-        } catch (e: any) {
-            setManualMsg(`❌ ${e.message}`)
+        // Find user_id from payment_requests by email
+        const { data: pmt } = await supabase.from('payment_requests')
+            .select('user_id')
+            .eq('user_email', manualEmail)
+            .limit(1)
+            .single()
+
+        if (!pmt?.user_id) {
+            // Try to find from user_plans (if we have them)
+            setManualMsg('❌ User not found. They must have at least one payment on record.')
+            return
         }
+
+        const { data: currentPlan } = await supabase.from('user_plans').select('*').eq('user_id', pmt.user_id).single()
+        const newQuota = (currentPlan?.quota || 200) + credits
+        await supabase.from('user_plans').upsert({
+            user_id: pmt.user_id,
+            plan: currentPlan?.plan || 'custom',
+            quota: newQuota,
+            used: currentPlan?.used || 0
+        })
+
+        setManualMsg(`✅ Added ${credits} credits to ${manualEmail} (total: ${newQuota})`)
+        setManualEmail('')
+        setManualCredits('')
+        fetchUsers()
+        fetchStats()
     }
 
     if (!isAdmin) {
@@ -186,114 +246,248 @@ export default function AdminPage() {
                     ))}
                 </div>
 
-                {/* Manual Credits */}
-                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                    className="glass mb-8">
-                    <h3 className="text-lg font-semibold mb-4">🎁 Manual Credit Grant</h3>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <input type="email" value={manualEmail} onChange={e => setManualEmail(e.target.value)}
-                            placeholder="User email"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
-                        <input type="number" value={manualCredits} onChange={e => setManualCredits(e.target.value)}
-                            placeholder="Credits"
-                            className="w-full sm:w-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
-                        <button onClick={handleManualCredits}
-                            className="btn-glow !py-3 !px-6 !text-[14px] whitespace-nowrap">
-                            Give Credits
-                        </button>
-                    </div>
-                    {manualMsg && <p className="mt-3 text-sm">{manualMsg}</p>}
-                </motion.div>
+                {/* Tab Switcher */}
+                <div className="flex gap-1 p-1 rounded-xl mb-8" style={{ background: 'rgba(0,0,0,0.3)', maxWidth: '400px' }}>
+                    <button onClick={() => setTab('payments')}
+                        className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'payments' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
+                        style={tab === 'payments' ? { background: 'rgba(0,240,255,0.1)', color: 'var(--accent)' } : {}}>
+                        💳 Payments
+                    </button>
+                    <button onClick={() => setTab('users')}
+                        className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'users' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
+                        style={tab === 'users' ? { background: 'rgba(124,58,237,0.12)', color: 'var(--accent2)' } : {}}>
+                        👥 Users & Credits
+                    </button>
+                </div>
 
-                {/* Payment Requests */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                    <h2 className="text-2xl font-bold mb-5">🔧 Payment Requests</h2>
+                {tab === 'payments' ? (
+                    <>
+                        {/* Manual Credits */}
+                        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                            className="glass mb-8">
+                            <h3 className="text-lg font-semibold mb-4">🎁 Manual Credit Grant</h3>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <input type="email" value={manualEmail} onChange={e => setManualEmail(e.target.value)}
+                                    placeholder="User email"
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                <input type="number" value={manualCredits} onChange={e => setManualCredits(e.target.value)}
+                                    placeholder="Credits"
+                                    className="w-full sm:w-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                <button onClick={handleManualCredits}
+                                    className="btn-glow !py-3 !px-6 !text-[14px] whitespace-nowrap">
+                                    Give Credits
+                                </button>
+                            </div>
+                            {manualMsg && <p className="mt-3 text-sm">{manualMsg}</p>}
+                        </motion.div>
 
-                    <div className="flex gap-2 mb-6 flex-wrap">
-                        {(['pending', 'approved', 'rejected', 'all'] as const).map(f => (
-                            <button key={f} onClick={() => setFilter(f)}
-                                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all capitalize
-                                    ${filter === f
-                                        ? 'bg-gradient-to-r from-[var(--accent2)] to-[var(--accent)] text-white shadow-[0_0_15px_rgba(0,240,255,0.2)]'
-                                        : 'bg-white/5 text-white/40 border border-white/10 hover:border-white/20 hover:text-white/60'}`}>
-                                {f === 'pending' ? `⏳ ${f}` : f === 'approved' ? `✅ ${f}` : f === 'rejected' ? `❌ ${f}` : `📋 ${f}`}
-                            </button>
-                        ))}
-                    </div>
+                        {/* Payment Requests */}
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                            <h2 className="text-2xl font-bold mb-5">🔧 Payment Requests</h2>
 
-                    {loading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <div className="w-12 h-12 rounded-full border-t-2 border-r-2 border-[#00f0ff] animate-spin"></div>
-                        </div>
-                    ) : payments.length === 0 ? (
-                        <div className="glass text-center py-12">
-                            <div className="text-4xl mb-3">📭</div>
-                            <p className="text-white/35 font-light">No {filter === 'all' ? '' : filter} payment requests</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4">
-                            {payments.map((p, i) => (
-                                <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.04 }}
-                                    className="glass !p-5 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                            <div className="flex gap-2 mb-6 flex-wrap">
+                                {(['pending', 'approved', 'rejected', 'all'] as const).map(f => (
+                                    <button key={f} onClick={() => setFilter(f)}
+                                        className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all capitalize
+                                            ${filter === f
+                                                ? 'bg-gradient-to-r from-[var(--accent2)] to-[var(--accent)] text-white shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                                                : 'bg-white/5 text-white/40 border border-white/10 hover:border-white/20 hover:text-white/60'}`}>
+                                        {f === 'pending' ? `⏳ ${f}` : f === 'approved' ? `✅ ${f}` : f === 'rejected' ? `❌ ${f}` : `📋 ${f}`}
+                                    </button>
+                                ))}
+                            </div>
 
-                                    {/* Screenshot thumbnail - clickable preview */}
-                                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 cursor-pointer border border-white/10 hover:border-[var(--accent)]/40 transition-all"
-                                        onClick={() => p.screenshot_url && setPreviewImg(p.screenshot_url)}>
-                                        {p.screenshot_url ? (
-                                            <img src={p.screenshot_url} alt="Payment" className="w-full h-full object-cover" />
+                            {loading ? (
+                                <div className="flex items-center justify-center py-20">
+                                    <div className="w-12 h-12 rounded-full border-t-2 border-r-2 border-[#00f0ff] animate-spin"></div>
+                                </div>
+                            ) : payments.length === 0 ? (
+                                <div className="glass text-center py-12">
+                                    <div className="text-4xl mb-3">📭</div>
+                                    <p className="text-white/35 font-light">No {filter === 'all' ? '' : filter} payment requests</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {payments.map((p, i) => (
+                                        <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: i * 0.04 }}
+                                            className="glass !p-5 flex flex-col md:flex-row gap-4 items-start md:items-center">
+
+                                            {/* Screenshot thumbnail */}
+                                            <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 cursor-pointer border border-white/10 hover:border-[var(--accent)]/40 transition-all"
+                                                onClick={() => p.screenshot_url && setPreviewImg(p.screenshot_url)}>
+                                                {p.screenshot_url ? (
+                                                    <img src={p.screenshot_url} alt="Payment" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-white/20">📷</div>
+                                                )}
+                                            </div>
+
+                                            {/* Details */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold
+                                                        ${p.status === 'pending' ? 'bg-yellow-500/15 text-yellow-400' :
+                                                            p.status === 'approved' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                                                        {p.status.toUpperCase()}
+                                                    </span>
+                                                    <span className="text-sm text-white/50 font-medium">{p.user_email}</span>
+                                                </div>
+                                                <div className="text-sm mb-1">
+                                                    <span className="text-white font-semibold">₹{p.amount}</span>
+                                                    <span className="text-white/20"> → </span>
+                                                    <span className="text-[#00f0ff] font-semibold">{p.plan_requested}</span>
+                                                    <span className="text-white/20"> ({PLANS[p.plan_requested]?.quota.toLocaleString()} credits)</span>
+                                                </div>
+                                                <div className="text-xs text-white/20 flex flex-wrap gap-x-3">
+                                                    <span>TXN: <span className="text-white/40">{p.transaction_id}</span></span>
+                                                    <span>{new Date(p.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                                {p.screenshot_url && (
+                                                    <a href={p.screenshot_url} target="_blank" rel="noopener noreferrer"
+                                                        className="text-xs text-[#00f0ff]/60 hover:text-[#00f0ff] mt-1 inline-block transition-colors">
+                                                        🔗 Open full image
+                                                    </a>
+                                                )}
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                                                {p.status === 'pending' && (
+                                                    <>
+                                                        <button onClick={() => handleApprove(p)}
+                                                            className="text-sm py-2 px-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
+                                                            ✅ Approve
+                                                        </button>
+                                                        <button onClick={() => handleReject(p.id)}
+                                                            className="text-sm py-2 px-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all font-medium">
+                                                            ❌ Reject
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {p.status !== 'pending' && (
+                                                    <button onClick={() => {
+                                                        supabase.from('payment_requests').update({ status: 'pending' }).eq('id', p.id).then(() => { fetchPayments(); fetchStats() })
+                                                    }}
+                                                        className="text-sm py-2 px-4 rounded-full bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition-all font-medium">
+                                                        ↩️ Revert to Pending
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
+                ) : (
+                    /* ===== USERS TAB ===== */
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <h2 className="text-2xl font-bold mb-5">👥 User Management</h2>
+                        <p className="text-white/30 text-sm font-light mb-6">Manage user plans, credits, and usage. Click Edit to modify any user&apos;s data.</p>
+
+                        {users.length === 0 ? (
+                            <div className="glass text-center py-12">
+                                <div className="text-4xl mb-3">👤</div>
+                                <p className="text-white/35 font-light">No users registered yet</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4">
+                                {users.map((u, i) => (
+                                    <motion.div key={u.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.04 }}
+                                        className="glass !p-5">
+
+                                        {editingUser === u.user_id ? (
+                                            /* Edit Mode */
+                                            <div>
+                                                <h4 className="text-sm font-semibold text-white/50 mb-3">
+                                                    ✏️ Editing: <span className="text-white">{u.email || u.user_id.slice(0, 12) + '...'}</span>
+                                                </h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                                                    <div>
+                                                        <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Plan</label>
+                                                        <select value={editPlan} onChange={e => setEditPlan(e.target.value)}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all">
+                                                            {Object.keys(PLANS).map(k => <option key={k} value={k}>{PLANS[k as PlanKey].name}</option>)}
+                                                            <option value="custom">Custom</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Total Credits (Quota)</label>
+                                                        <input type="number" value={editQuota} onChange={e => setEditQuota(e.target.value)}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Used Credits</label>
+                                                        <input type="number" value={editUsed} onChange={e => setEditUsed(e.target.value)}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleEditUser(u.user_id)}
+                                                        className="text-sm py-2 px-5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
+                                                        💾 Save
+                                                    </button>
+                                                    <button onClick={() => setEditingUser(null)}
+                                                        className="text-sm py-2 px-5 rounded-full bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition-all font-medium">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-white/20">📷</div>
-                                        )}
-                                    </div>
+                                            /* View Mode */
+                                            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                        <span className="text-sm font-semibold text-white">
+                                                            {u.email || u.user_id.slice(0, 16) + '...'}
+                                                        </span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                                            ${u.plan === 'free' ? 'bg-white/5 text-white/40' :
+                                                                u.plan === 'starter' ? 'bg-blue-500/15 text-blue-400' :
+                                                                    u.plan === 'pro' ? 'bg-purple-500/15 text-purple-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                                                            {u.plan}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-sm text-white/35 flex flex-wrap gap-x-4">
+                                                        <span>Quota: <span className="text-white/60 font-medium">{u.quota.toLocaleString()}</span></span>
+                                                        <span>Used: <span className="text-white/60 font-medium">{u.used.toLocaleString()}</span></span>
+                                                        <span>Remaining: <span className="text-[#00f0ff] font-medium">{(u.quota - u.used).toLocaleString()}</span></span>
+                                                    </div>
+                                                    {/* Usage bar */}
+                                                    <div className="w-full h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                                        <div className="h-full rounded-full transition-all"
+                                                            style={{
+                                                                width: `${Math.min(100, (u.used / u.quota) * 100)}%`,
+                                                                background: u.used / u.quota > 0.8 ? '#ef4444' : 'linear-gradient(90deg, var(--accent2), var(--accent))'
+                                                            }} />
+                                                    </div>
+                                                </div>
 
-                                    {/* Details */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold
-                                                ${p.status === 'pending' ? 'bg-yellow-500/15 text-yellow-400' :
-                                                    p.status === 'approved' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
-                                                {p.status.toUpperCase()}
-                                            </span>
-                                            <span className="text-sm text-white/50 font-medium">{p.user_email}</span>
-                                        </div>
-                                        <div className="text-sm mb-1">
-                                            <span className="text-white font-semibold">₹{p.amount}</span>
-                                            <span className="text-white/20"> → </span>
-                                            <span className="text-[#00f0ff] font-semibold">{p.plan_requested}</span>
-                                            <span className="text-white/20"> ({PLANS[p.plan_requested]?.quota.toLocaleString()} credits)</span>
-                                        </div>
-                                        <div className="text-xs text-white/20 flex flex-wrap gap-x-3">
-                                            <span>TXN: <span className="text-white/40">{p.transaction_id}</span></span>
-                                            <span>{new Date(p.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                        {/* Image link */}
-                                        {p.screenshot_url && (
-                                            <a href={p.screenshot_url} target="_blank" rel="noopener noreferrer"
-                                                className="text-xs text-[#00f0ff]/60 hover:text-[#00f0ff] mt-1 inline-block transition-colors">
-                                                🔗 Open full image
-                                            </a>
+                                                <div className="flex gap-2 flex-shrink-0">
+                                                    <button onClick={() => handleAddCredits(u.user_id, u.quota)}
+                                                        className="text-sm py-2 px-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
+                                                        ➕ Add Credits
+                                                    </button>
+                                                    <button onClick={() => {
+                                                        setEditingUser(u.user_id)
+                                                        setEditPlan(u.plan)
+                                                        setEditQuota(u.quota.toString())
+                                                        setEditUsed(u.used.toString())
+                                                    }}
+                                                        className="text-sm py-2 px-4 rounded-full bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 transition-all font-medium">
+                                                        ✏️ Edit
+                                                    </button>
+                                                </div>
+                                            </div>
                                         )}
-                                    </div>
-
-                                    {/* Actions */}
-                                    {p.status === 'pending' && (
-                                        <div className="flex gap-2 flex-shrink-0">
-                                            <button onClick={() => handleApprove(p)}
-                                                className="text-sm py-2 px-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
-                                                ✅ Approve
-                                            </button>
-                                            <button onClick={() => handleReject(p.id)}
-                                                className="text-sm py-2 px-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all font-medium">
-                                                ❌ Reject
-                                            </button>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </div>
-                    )}
-                </motion.div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </motion.div>
+                )}
             </div>
         </div>
     )
