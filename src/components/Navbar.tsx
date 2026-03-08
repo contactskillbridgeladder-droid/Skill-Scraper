@@ -12,7 +12,7 @@ export default function Navbar() {
 
     // Pages where we DON'T show the public navbar
     const hideOn = ['/dashboard', '/admin', '/upload-payment']
-    if (hideOn.some(p => pathname.startsWith(p))) return null
+    const shouldHide = hideOn.some(p => pathname.startsWith(p))
 
     useEffect(() => {
         const handle = () => {
@@ -24,6 +24,8 @@ export default function Navbar() {
         window.addEventListener('scroll', handle, { passive: true })
         return () => window.removeEventListener('scroll', handle)
     })
+
+    if (shouldHide) return null
 
     return (
         <nav
