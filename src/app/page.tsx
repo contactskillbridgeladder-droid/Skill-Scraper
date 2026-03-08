@@ -92,6 +92,68 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ━━━ SOCIAL PROOF STATS ━━━ */}
+      <section className="w-full" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
+        <div className="container-main">
+          <div className="glass p-8 sm:p-10 flex flex-col sm:flex-row items-center justify-around gap-8 text-center">
+            {[
+              { num: '10,000+', label: 'Leads Scraped' },
+              { num: '500+', label: 'Active Users' },
+              { num: '50+', label: 'Countries' },
+              { num: '4.8★', label: 'User Rating' },
+            ].map((s, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }} viewport={{ once: true }}>
+                <div className="text-2xl sm:text-3xl font-black text-grad-cyan mb-1">{s.num}</div>
+                <div className="text-[11px] uppercase tracking-[0.15em] text-white/25 font-semibold">{s.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ━━━ TESTIMONIALS ━━━ */}
+      <section className="w-full" style={{ paddingTop: '40px', paddingBottom: '80px' }}>
+        <div className="container-main">
+          <div className="text-center mb-12">
+            <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+              className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+              Trusted by <span className="text-grad">Professionals</span>
+            </motion.h2>
+            <p className="text-white/35 text-[16px] font-light max-w-[480px] mx-auto">
+              See what our users are saying about Skill Scraper.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { name: 'Rahul S.', role: 'Real Estate Agent', text: 'Skill Scraper saved me hours of manual work. I can now find leads from any city in India within minutes!', avatar: '🏠' },
+              { name: 'Priya M.', role: 'Marketing Agency', text: 'The WhatsApp number extraction is a game-changer. Our outreach campaigns are 3x more effective now.', avatar: '📈' },
+              { name: 'Amit K.', role: 'Sales Consultant', text: 'Best investment I\'ve made. The free tier alone gives enough credits to close deals every month.', avatar: '🎯' },
+            ].map((t, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.5 }} viewport={{ once: true }}
+                className="glass p-7">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm">{t.name}</div>
+                    <div className="text-[11px] text-white/30">{t.role}</div>
+                  </div>
+                </div>
+                <p className="text-white/40 text-[14px] font-light leading-relaxed">&ldquo;{t.text}&rdquo;</p>
+                <div className="flex gap-0.5 mt-4">
+                  {[1, 2, 3, 4, 5].map(s => <span key={s} className="text-yellow-400 text-sm">★</span>)}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ━━━ CTA BANNER ━━━ */}
       <section className="w-full" style={{ paddingTop: '40px', paddingBottom: '100px' }}>
         <div className="container-main">

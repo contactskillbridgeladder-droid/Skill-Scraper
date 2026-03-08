@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: {
@@ -66,23 +67,25 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased min-h-screen overflow-x-hidden">
-        {/* Background FX */}
-        <div className="bg-grid"></div>
-        <div className="glow-orb glow-orb-1"></div>
-        <div className="glow-orb glow-orb-2"></div>
+        <ToastProvider>
+          {/* Background FX */}
+          <div className="bg-grid"></div>
+          <div className="glow-orb glow-orb-1"></div>
+          <div className="glow-orb glow-orb-2"></div>
 
-        {/* Global Navbar */}
-        <Navbar />
+          {/* Global Navbar */}
+          <Navbar />
 
-        {/* Page Content */}
-        <div className="relative z-10 flex flex-col min-h-screen">
-          <main className="flex-1">
-            {children}
-          </main>
+          {/* Page Content */}
+          <div className="relative z-10 flex flex-col min-h-screen">
+            <main className="flex-1">
+              {children}
+            </main>
 
-          {/* Global Footer */}
-          <Footer />
-        </div>
+            {/* Global Footer */}
+            <Footer />
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );
