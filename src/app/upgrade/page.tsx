@@ -24,7 +24,7 @@ export default function UpgradePage() {
         if (data) setCurrentPlan(data.plan as PlanKey)
     }
 
-    const UPI_ID = 'YOUR_UPI_ID@upi'
+    const UPI_ID = 'skillscaper@indie'
 
     return (
         <div className="w-full relative z-10">
