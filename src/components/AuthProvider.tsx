@@ -40,6 +40,21 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                         token: session.access_token
                     }, '*')
                 }
+
+                // Track referral if exists
+                if (typeof window !== 'undefined') {
+                    const refCode = localStorage.getItem('referral_code')
+                    if (refCode) {
+                        fetch('/api/referral', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ referrerCode: refCode, sessionToken: session.access_token })
+                        }).catch(e => console.error('Referral error:', e))
+
+                        // Clear it so we don't trigger it again
+                        localStorage.removeItem('referral_code')
+                    }
+                }
             }
 
             if (event === 'SIGNED_OUT') {

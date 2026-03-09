@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -14,6 +14,13 @@ export default function LoginPage() {
     const [success, setSuccess] = useState('')
     const [loading, setLoading] = useState(false)
     const router = useRouter()
+
+    useEffect(() => {
+        const ref = new URLSearchParams(window.location.search).get('ref')
+        if (ref) {
+            localStorage.setItem('referral_code', ref)
+        }
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

@@ -63,6 +63,15 @@ interface EnterpriseKey {
     created_at: string
 }
 
+interface Referral {
+    id: string
+    referrer_id: string
+    referred_user_id: string
+    referred_email: string
+    status: string
+    created_at: string
+}
+
 // ADMIN EMAILS - strict access
 const ADMIN_EMAILS = ['contact.skillbridgeladder@gmail.com', 'skillbridgeladder@gmail.com']
 
@@ -71,7 +80,7 @@ export default function AdminPage() {
     const [users, setUsers] = useState<(UserPlan & { email?: string })[]>([])
     const [loading, setLoading] = useState(true)
     const [isAdmin, setIsAdmin] = useState(false)
-    const [tab, setTab] = useState<'payments' | 'users' | 'blog' | 'keys'>('payments')
+    const [tab, setTab] = useState<'payments' | 'users' | 'blog' | 'keys' | 'referrals'>('payments')
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
     const [stats, setStats] = useState<DashStats>({ totalUsers: 0, totalPayments: 0, pendingPayments: 0, totalRevenue: 0, activeKeys: 0 })
     const [previewImg, setPreviewImg] = useState<string | null>(null)
@@ -91,6 +100,8 @@ export default function AdminPage() {
     const [keys, setKeys] = useState<EnterpriseKey[]>([])
     const [keyForm, setKeyForm] = useState({ label: '', quota: '1000000', code: '' })
     const [keyMsg, setKeyMsg] = useState('')
+    // Referrals state
+    const [referrals, setReferrals] = useState<Referral[]>([])
     const router = useRouter()
 
     useEffect(() => { checkAdmin() }, [])
@@ -105,6 +116,7 @@ export default function AdminPage() {
         fetchUsers()
         fetchBlogPosts()
         fetchKeys()
+        fetchReferrals()
     }
 
     async function fetchStats() {
@@ -141,6 +153,11 @@ export default function AdminPage() {
             allPayments?.forEach(p => { if (p.user_email) emailMap[p.user_id] = p.user_email })
             setUsers(data.map(u => ({ ...u, email: emailMap[u.user_id] || '' })))
         }
+    }
+
+    async function fetchReferrals() {
+        const { data } = await supabase.from('referrals').select('*').order('created_at', { ascending: false })
+        if (data) setReferrals(data)
     }
 
     useEffect(() => { if (isAdmin) fetchPayments() }, [filter, isAdmin])
@@ -325,6 +342,30 @@ export default function AdminPage() {
         fetchStats()
     }
 
+    async function handleApproveReferral(ref: Referral) {
+        if (!confirm('Approve this referral and grant 50 credits to the referrer?')) return
+        await supabase.from('referrals').update({ status: 'verified' }).eq('id', ref.id)
+
+        const referrer = users.find(u => u.user_id === ref.referrer_id)
+        if (referrer) {
+            await supabase.from('user_plans').update({ quota: referrer.quota + 50 }).eq('user_id', ref.referrer_id)
+        } else {
+            const { data: rp } = await supabase.from('user_plans').select('quota').eq('user_id', ref.referrer_id).single()
+            if (rp) {
+                await supabase.from('user_plans').update({ quota: rp.quota + 50 }).eq('user_id', ref.referrer_id)
+            }
+        }
+
+        fetchReferrals()
+        fetchUsers()
+    }
+
+    async function handleRejectReferral(id: string) {
+        if (!confirm('Reject this referral?')) return
+        await supabase.from('referrals').update({ status: 'rejected' }).eq('id', id)
+        fetchReferrals()
+    }
+
     async function handleDeletePost(id: string) {
         if (!confirm('Delete this article permanently?')) return
         await supabase.from('blog_posts').delete().eq('id', id)
@@ -412,6 +453,11 @@ export default function AdminPage() {
                         className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'keys' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
                         style={tab === 'keys' ? { background: 'rgba(234,179,8,0.12)', color: '#eab308' } : {}}>
                         🔑 Keys
+                    </button>
+                    <button onClick={() => setTab('referrals')}
+                        className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'referrals' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
+                        style={tab === 'referrals' ? { background: 'rgba(236,72,153,0.12)', color: '#ec4899' } : {}}>
+                        🤝 Referrals
                     </button>
                 </div>
 
@@ -866,6 +912,64 @@ export default function AdminPage() {
                                                         🚫 Revoke
                                                     </button>
                                                 </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+                {tab === 'referrals' && (
+                    /* ===== REFERRALS TAB ===== */
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <h2 className="text-2xl font-bold mb-5">🤝 Referrals</h2>
+                        <p className="text-white/30 text-sm font-light mb-6">Manage user referrals. Approve them to automatically grant 50 credits to the referrer.</p>
+
+                        {referrals.length === 0 ? (
+                            <div className="glass text-center py-12">
+                                <div className="text-4xl mb-3">📭</div>
+                                <p className="text-white/35 font-light">No referrals found</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4">
+                                {referrals.map((r, i) => (
+                                    <motion.div key={r.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.04 }}
+                                        className="glass !p-5 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                                    ${r.status === 'pending' ? 'bg-yellow-500/15 text-yellow-400' :
+                                                        r.status === 'verified' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                                                    {r.status.toUpperCase()}
+                                                </span>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-white/5 text-white/30">
+                                                    {new Date(r.created_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <h4 className="text-sm font-semibold text-white mb-1">
+                                                Referred: <span className="text-[#00f0ff]">{r.referred_email}</span>
+                                            </h4>
+                                            <p className="text-xs text-white/40">
+                                                By: <code>{r.referrer_id.slice(0, 12)}...</code>
+                                                {users.find(u => u.user_id === r.referrer_id)?.email && (
+                                                    <span className="ml-2 text-white/60">({users.find(u => u.user_id === r.referrer_id)?.email})</span>
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                                            {r.status === 'pending' && (
+                                                <>
+                                                    <button onClick={() => handleApproveReferral(r)}
+                                                        className="text-sm py-2 px-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
+                                                        ✅ Approve (+50)
+                                                    </button>
+                                                    <button onClick={() => handleRejectReferral(r.id)}
+                                                        className="text-sm py-2 px-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all font-medium">
+                                                        ❌ Reject
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     </motion.div>

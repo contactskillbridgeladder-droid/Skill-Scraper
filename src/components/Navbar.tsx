@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 const NAV_LINKS = [
     { href: '/pricing', label: 'Pricing' },
@@ -44,6 +45,21 @@ export default function Navbar() {
         return () => { document.body.style.overflow = '' }
     }, [mobileOpen])
 
+    const [user, setUser] = useState<{ email?: string } | null>(null)
+
+    // Check user auth state
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data: { user } }: any) => {
+            setUser(user ? { email: user.email } : null)
+        })
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+            setUser(session?.user ? { email: session.user.email } : null)
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
     if (shouldHide) return null
 
     return (
@@ -73,19 +89,27 @@ export default function Navbar() {
                                 {link.label}
                             </Link>
                         ))}
-                        <Link href="/login"
-                            className="text-sm font-medium text-white/45 hover:text-white transition-colors">
-                            Log In
-                        </Link>
-                        <Link href="/login" className="btn-glow !py-2.5 !px-5 !text-[13px]">
-                            Dashboard
-                        </Link>
+                        {user ? (
+                            <Link href="/dashboard" className="btn-glow !py-2.5 !px-5 !text-[13px]">
+                                Go to Dashboard
+                            </Link>
+                        ) : (
+                            <>
+                                <Link href="/login"
+                                    className="text-sm font-medium text-white/45 hover:text-white transition-colors">
+                                    Log In
+                                </Link>
+                                <Link href="/login" className="btn-glow !py-2.5 !px-5 !text-[13px]">
+                                    Sign Up
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile: Dashboard + Hamburger */}
                     <div className="flex items-center gap-3 md:hidden">
-                        <Link href="/login" className="btn-glow !py-2 !px-4 !text-[12px]">
-                            Dashboard
+                        <Link href={user ? "/dashboard" : "/login"} className="btn-glow !py-2 !px-4 !text-[12px]">
+                            {user ? "Dashboard" : "Log In"}
                         </Link>
                         <button
                             onClick={() => setMobileOpen(!mobileOpen)}
@@ -123,24 +147,26 @@ export default function Navbar() {
 
                     <div className="w-16 h-[1px] bg-white/10 my-2" />
 
-                    <Link href="/login"
-                        className="text-lg font-medium text-white/50 hover:text-white transition-colors"
-                        style={{
-                            transform: mobileOpen ? 'translateY(0)' : 'translateY(20px)',
-                            opacity: mobileOpen ? 1 : 0,
-                            transitionDelay: `${NAV_LINKS.length * 60}ms`,
-                        }}>
-                        Log In
-                    </Link>
+                    {!user && (
+                        <Link href="/login"
+                            className="text-lg font-medium text-white/50 hover:text-white transition-colors"
+                            style={{
+                                transform: mobileOpen ? 'translateY(0)' : 'translateY(20px)',
+                                opacity: mobileOpen ? 1 : 0,
+                                transitionDelay: `${NAV_LINKS.length * 60}ms`,
+                            }}>
+                            Log In
+                        </Link>
+                    )}
 
-                    <Link href="/login"
+                    <Link href={user ? "/dashboard" : "/login"}
                         className="btn-glow !py-4 !px-10 !text-[16px] mt-4"
                         style={{
                             transform: mobileOpen ? 'translateY(0)' : 'translateY(20px)',
                             opacity: mobileOpen ? 1 : 0,
                             transitionDelay: `${(NAV_LINKS.length + 1) * 60}ms`,
                         }}>
-                        Go to Dashboard
+                        {user ? "Go to Dashboard" : "Sign Up"}
                     </Link>
                 </div>
             </div>
