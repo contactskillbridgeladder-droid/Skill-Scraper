@@ -143,10 +143,15 @@ export default function DashboardPage() {
                             <div className="text-sm font-light text-white/35 leading-relaxed mb-6">{currentPlan.label}</div>
                         </div>
 
-                        {plan?.plan !== 'enterprise' && (
+                        {plan?.plan !== 'enterprise' ? (
                             <Link href="/upgrade" className="btn-glow w-full text-center !text-[14px]">
                                 Upgrade Plan 🚀
                             </Link>
+                        ) : (
+                            <div className="py-3 px-6 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold"
+                                style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
+                                ✅ Enterprise Key Active
+                            </div>
                         )}
                     </motion.div>
                 </div>

@@ -47,6 +47,20 @@ interface DashStats {
     totalPayments: number
     pendingPayments: number
     totalRevenue: number
+    activeKeys: number
+}
+
+interface EnterpriseKey {
+    id: string
+    key_code: string
+    label: string
+    quota: number
+    used: number
+    activated_by: string | null
+    activated_email: string | null
+    activated_at: string | null
+    is_active: boolean
+    created_at: string
 }
 
 // ADMIN EMAILS - strict access
@@ -57,9 +71,9 @@ export default function AdminPage() {
     const [users, setUsers] = useState<(UserPlan & { email?: string })[]>([])
     const [loading, setLoading] = useState(true)
     const [isAdmin, setIsAdmin] = useState(false)
-    const [tab, setTab] = useState<'payments' | 'users' | 'blog'>('payments')
+    const [tab, setTab] = useState<'payments' | 'users' | 'blog' | 'keys'>('payments')
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
-    const [stats, setStats] = useState<DashStats>({ totalUsers: 0, totalPayments: 0, pendingPayments: 0, totalRevenue: 0 })
+    const [stats, setStats] = useState<DashStats>({ totalUsers: 0, totalPayments: 0, pendingPayments: 0, totalRevenue: 0, activeKeys: 0 })
     const [previewImg, setPreviewImg] = useState<string | null>(null)
     const [editingUser, setEditingUser] = useState<string | null>(null)
     const [editQuota, setEditQuota] = useState('')
@@ -73,6 +87,10 @@ export default function AdminPage() {
     const [blogEditing, setBlogEditing] = useState<BlogPost | null>(null)
     const [blogForm, setBlogForm] = useState({ slug: '', title: '', excerpt: '', content: '', tag: 'Guide', read_time: '5 min read', meta_title: '', meta_description: '', meta_keywords: '', published: true })
     const [blogMsg, setBlogMsg] = useState('')
+    // Keys state
+    const [keys, setKeys] = useState<EnterpriseKey[]>([])
+    const [keyForm, setKeyForm] = useState({ label: '', quota: '1000000', code: '' })
+    const [keyMsg, setKeyMsg] = useState('')
     const router = useRouter()
 
     useEffect(() => { checkAdmin() }, [])
@@ -86,6 +104,7 @@ export default function AdminPage() {
         fetchStats()
         fetchUsers()
         fetchBlogPosts()
+        fetchKeys()
     }
 
     async function fetchStats() {
@@ -93,11 +112,13 @@ export default function AdminPage() {
         const { data: allPayments } = await supabase.from('payment_requests').select('*')
         const pending = allPayments?.filter(p => p.status === 'pending').length || 0
         const revenue = allPayments?.filter(p => p.status === 'approved').reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+        const { count: activeKeys } = await supabase.from('enterprise_keys').select('*', { count: 'exact', head: true }).eq('is_active', true)
         setStats({
             totalUsers: userCount || 0,
             totalPayments: allPayments?.length || 0,
             pendingPayments: pending,
-            totalRevenue: revenue
+            totalRevenue: revenue,
+            activeKeys: activeKeys || 0
         })
     }
 
@@ -270,6 +291,40 @@ export default function AdminPage() {
         fetchBlogPosts()
     }
 
+    // ===== ENTEPRISE KEYS FUNCTIONS =====
+    async function fetchKeys() {
+        const { data } = await supabase.from('enterprise_keys').select('*').order('created_at', { ascending: false })
+        if (data) setKeys(data)
+    }
+
+    async function handleCreateKey() {
+        const quota = parseInt(keyForm.quota) || 1000000
+        const code = keyForm.code.trim() || `SKILL-${Math.random().toString(36).substring(2, 10).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+
+        const { error } = await supabase.from('enterprise_keys').insert({
+            key_code: code,
+            label: keyForm.label || 'Standard Enterprise Key',
+            quota: quota
+        })
+
+        if (error) {
+            setKeyMsg('❌ Error creating key: ' + error.message)
+            return
+        }
+
+        setKeyMsg('✅ Key created successfully!')
+        setKeyForm({ label: '', quota: '1000000', code: '' })
+        fetchKeys()
+        fetchStats()
+    }
+
+    async function handleRevokeKey(id: string) {
+        if (!confirm('Revoke this key? It will block the user from using it.')) return
+        await supabase.from('enterprise_keys').update({ is_active: false }).eq('id', id)
+        fetchKeys()
+        fetchStats()
+    }
+
     async function handleDeletePost(id: string) {
         if (!confirm('Delete this article permanently?')) return
         await supabase.from('blog_posts').delete().eq('id', id)
@@ -325,7 +380,7 @@ export default function AdminPage() {
                         { label: 'Total Users', value: stats.totalUsers, icon: '👥', color: '#00f0ff' },
                         { label: 'Total Payments', value: stats.totalPayments, icon: '💳', color: '#7c3aed' },
                         { label: 'Pending', value: stats.pendingPayments, icon: '⏳', color: '#ffb400' },
-                        { label: 'Revenue', value: `₹${stats.totalRevenue.toLocaleString()}`, icon: '💰', color: '#22c55e' },
+                        { label: 'Active Keys', value: stats.activeKeys, icon: '🔑', color: '#22c55e' },
                     ].map((s, i) => (
                         <motion.div key={i} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
                             className="glass !p-5">
@@ -352,6 +407,11 @@ export default function AdminPage() {
                         className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'blog' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
                         style={tab === 'blog' ? { background: 'rgba(34,197,94,0.12)', color: '#22c55e' } : {}}>
                         📝 Blog
+                    </button>
+                    <button onClick={() => setTab('keys')}
+                        className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'keys' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
+                        style={tab === 'keys' ? { background: 'rgba(234,179,8,0.12)', color: '#eab308' } : {}}>
+                        🔑 Keys
                     </button>
                 </div>
 
@@ -727,6 +787,86 @@ export default function AdminPage() {
                                                     🗑️
                                                 </button>
                                             </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+                {tab === 'keys' && (
+                    /* ===== ENTERPRISE KEYS TAB ===== */
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <h2 className="text-2xl font-bold mb-5">🔑 Enterprise Keys</h2>
+                        <p className="text-white/30 text-sm font-light mb-6">Create keys to give agencies/teams unrestricted or bulk API access. When activated, the user gets an Enterprise Plan automatically.</p>
+
+                        <div className="glass mb-8">
+                            <h3 className="text-lg font-semibold mb-4">➕ Generate Key</h3>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <input type="text" value={keyForm.label} onChange={e => setKeyForm({ ...keyForm, label: e.target.value })}
+                                    placeholder="Label (e.g. Acme Corp)"
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                <input type="text" value={keyForm.code} onChange={e => setKeyForm({ ...keyForm, code: e.target.value })}
+                                    placeholder="Custom Code (Auto-generates if empty)"
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                <input type="number" value={keyForm.quota} onChange={e => setKeyForm({ ...keyForm, quota: e.target.value })}
+                                    placeholder="Quota"
+                                    className="w-full sm:w-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                <button onClick={handleCreateKey}
+                                    className="btn-glow !py-3 !px-6 !text-[14px] whitespace-nowrap">
+                                    Create Key
+                                </button>
+                            </div>
+                            {keyMsg && <p className="mt-3 text-sm">{keyMsg}</p>}
+                        </div>
+
+                        {keys.length === 0 ? (
+                            <div className="glass text-center py-12">
+                                <div className="text-4xl mb-3">📭</div>
+                                <p className="text-white/35 font-light">No enterprise keys generated</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4">
+                                {keys.map((k, i) => (
+                                    <motion.div key={k.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.04 }}
+                                        className={`glass !p-5 ${!k.is_active ? 'opacity-50' : ''}`}>
+                                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                                        ${k.is_active ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                                                        {k.is_active ? 'ACTIVE' : 'REVOKED'}
+                                                    </span>
+                                                    {k.activated_by ? (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/15 text-blue-400">
+                                                            USED BY {k.activated_email || 'UNKNOWN'}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-500/15 text-yellow-400">
+                                                            UNUSED
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h4 className="text-lg font-mono text-white mb-1 select-all">{k.key_code}</h4>
+                                                <div className="text-sm text-white/35 flex flex-wrap gap-x-4">
+                                                    <span>Label: <span className="text-white/60 font-medium">{k.label}</span></span>
+                                                    <span>Quota: <span className="text-white/60 font-medium">{k.quota.toLocaleString()}</span></span>
+                                                    <span>Created: <span className="text-white/60">{new Date(k.created_at).toLocaleDateString()}</span></span>
+                                                </div>
+                                            </div>
+                                            {k.is_active && (
+                                                <div className="flex gap-2 flex-shrink-0">
+                                                    <button onClick={() => { navigator.clipboard.writeText(k.key_code); alert('Key copied to clipboard!') }}
+                                                        className="text-sm py-2 px-4 rounded-full bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition-all font-medium">
+                                                        📋 Copy
+                                                    </button>
+                                                    <button onClick={() => handleRevokeKey(k.id)}
+                                                        className="text-sm py-2 px-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all font-medium">
+                                                        🚫 Revoke
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </motion.div>
                                 ))}

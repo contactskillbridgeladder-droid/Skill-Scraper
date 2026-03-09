@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ToastProvider } from "@/components/Toast";
+import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -131,23 +132,25 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen overflow-x-hidden">
         <ToastProvider>
-          {/* Background FX */}
-          <div className="bg-grid"></div>
-          <div className="glow-orb glow-orb-1"></div>
-          <div className="glow-orb glow-orb-2"></div>
+          <AuthProvider>
+            {/* Background FX */}
+            <div className="bg-grid"></div>
+            <div className="glow-orb glow-orb-1"></div>
+            <div className="glow-orb glow-orb-2"></div>
 
-          {/* Global Navbar */}
-          <Navbar />
+            {/* Global Navbar */}
+            <Navbar />
 
-          {/* Page Content */}
-          <div className="relative z-10 flex flex-col min-h-screen">
-            <main className="flex-1">
-              {children}
-            </main>
+            {/* Page Content */}
+            <div className="relative z-10 flex flex-col min-h-screen">
+              <main className="flex-1">
+                {children}
+              </main>
 
-            {/* Global Footer */}
-            <Footer />
-          </div>
+              {/* Global Footer */}
+              <Footer />
+            </div>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>
