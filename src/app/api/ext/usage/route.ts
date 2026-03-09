@@ -39,6 +39,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
+        // Check if banned
+        const { data: planCheck } = await supabase.from('user_plans').select('is_banned').eq('user_id', user.id).single()
+        if (planCheck?.is_banned) {
+            return NextResponse.json({ error: 'Account suspended' }, { status: 403 })
+        }
+
         // Use the increment_usage RPC if available
         const { error: rpcError } = await supabase.rpc('increment_usage', {
             p_user_id: user.id,

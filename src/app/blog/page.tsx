@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import AdBanner from '@/components/AdBanner'
 
 interface BlogPost {
     id: string
@@ -44,6 +45,8 @@ export default function BlogPage() {
                     </motion.div>
                 </div>
             </section>
+
+            <AdBanner className="my-8" dataAdSlot="9355458561" />
 
             <section className="w-full" style={{ paddingBottom: '100px' }}>
                 <div className="container-main" style={{ maxWidth: '820px' }}>

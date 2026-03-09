@@ -129,6 +129,9 @@ export default function RootLayout({
             })
           }}
         />
+        {/* Google AdSense Global Site Tag & Verification */}
+        <meta name="google-adsense-account" content="ca-pub-5046331321616410" />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5046331321616410" crossOrigin="anonymous"></script>
       </head>
       <body className="antialiased min-h-screen overflow-x-hidden">
         <ToastProvider>

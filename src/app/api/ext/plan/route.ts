@@ -43,6 +43,10 @@ export async function GET(request: Request) {
 
         let plan = planData
 
+        if (plan?.is_banned) {
+            return NextResponse.json({ error: 'Your account has been suspended by an administrator.' }, { status: 403 })
+        }
+
         if (!plan) {
             // Create default plan
             const { data: newPlan, error: insertError } = await supabase

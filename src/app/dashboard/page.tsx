@@ -11,6 +11,9 @@ interface UserPlan {
     quota: number
     used: number
     cycle_start?: string
+    email?: string
+    full_name?: string
+    referral_code?: string
 }
 
 const ADMIN_EMAILS = ['contact.skillbridgeladder@gmail.com', 'skillbridgeladder@gmail.com']
@@ -92,7 +95,7 @@ export default function DashboardPage() {
             <div className="container-main" style={{ paddingTop: '120px', paddingBottom: '80px' }}>
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-12">
                     <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)' }} className="font-black tracking-[-0.03em] mb-3">
-                        Welcome Back, <span className="text-grad-cyan">Scraper</span>
+                        Welcome Back, <span className="text-grad-cyan">{plan?.full_name || user?.email || 'Scraper'}</span>
                     </h1>
                     <p className="text-white/35 text-[16px] font-light">
                         Here&apos;s an overview of your current usage and plan details.
@@ -251,20 +254,31 @@ export default function DashboardPage() {
                     className="glass mt-6 flex flex-col sm:flex-row items-center gap-5 relative overflow-hidden">
                     <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(0,240,255,0.03))' }} />
                     <div className="flex-1 relative z-10">
-                        <h3 className="text-lg font-semibold mb-1">🎁 Invite Friends, Get Credits!</h3>
+                        <h3 className="text-lg font-semibold mb-1">🎁 Invite Friends, Get Skillcoins!</h3>
                         <p className="text-white/35 text-sm font-light">
-                            Share your referral link. Get <span className="text-[#00f0ff] font-medium">50 free credits</span> when they sign up.
+                            Share your referral link. Get <span className="text-[#00f0ff] font-medium">50 free Skillcoins</span> when they sign up.
                         </p>
                     </div>
-                    <button
-                        onClick={() => {
-                            const link = `https://scraper.skillbridgeladder.in/login?ref=${user?.id?.slice(0, 8)}`
-                            navigator.clipboard.writeText(link)
-                            alert('Referral link copied!')
-                        }}
-                        className="btn-glow !py-3 !px-6 !text-[13px] relative z-10 whitespace-nowrap shrink-0">
-                        📋 Copy Referral Link
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-2 shrink-0 relative z-10">
+                        <button
+                            onClick={() => {
+                                const link = `https://scraper.skillbridgeladder.in/login?ref=${plan?.referral_code || user?.id?.slice(0, 8)}`
+                                navigator.clipboard.writeText(link)
+                                alert('Referral link copied!')
+                            }}
+                            className="btn-glow !py-3 !px-6 !text-[13px] whitespace-nowrap">
+                            📋 Copy Referral Link
+                        </button>
+                        <button
+                            onClick={() => {
+                                const link = `https://scraper.skillbridgeladder.in/login?ref=${plan?.referral_code || user?.id?.slice(0, 8)}`
+                                const text = encodeURIComponent(`Hey! I'm using Skill Scraper for my business. ${user?.email ? `It's me, ${user.email}. ` : ''}Try it out and get free Skillcoins when you sign up using my link: ${link}`)
+                                window.open(`https://wa.me/?text=${text}`, '_blank')
+                            }}
+                            className="bg-[#25D366]/20 text-[#25D366] hover:bg-[#25D366]/30 border border-[#25D366]/30 transition-all rounded-full font-bold tracking-wider uppercase flex items-center justify-center gap-2 !py-3 !px-6 !text-[13px] whitespace-nowrap">
+                            💬 Share on WhatsApp
+                        </button>
+                    </div>
                 </motion.div>
             </div>
         </div>

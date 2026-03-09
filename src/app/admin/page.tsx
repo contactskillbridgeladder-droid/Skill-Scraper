@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { supabase, PLANS, PlanKey } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts'
 
 interface PaymentRequest {
     id: string
@@ -24,6 +25,10 @@ interface UserPlan {
     plan: string
     quota: number
     used: number
+    is_banned: boolean
+    email?: string
+    full_name?: string
+    referral_code?: string
     created_at: string
 }
 
@@ -80,9 +85,11 @@ export default function AdminPage() {
     const [users, setUsers] = useState<(UserPlan & { email?: string })[]>([])
     const [loading, setLoading] = useState(true)
     const [isAdmin, setIsAdmin] = useState(false)
-    const [tab, setTab] = useState<'payments' | 'users' | 'blog' | 'keys' | 'referrals'>('payments')
+    const [tab, setTab] = useState<'overview' | 'payments' | 'users' | 'blog' | 'keys' | 'referrals'>('overview')
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
     const [stats, setStats] = useState<DashStats>({ totalUsers: 0, totalPayments: 0, pendingPayments: 0, totalRevenue: 0, activeKeys: 0 })
+    const [revenueData, setRevenueData] = useState<{ date: string, revenue: number }[]>([])
+    const [userGrowthData, setUserGrowthData] = useState<{ date: string, users: number }[]>([])
     const [previewImg, setPreviewImg] = useState<string | null>(null)
     const [editingUser, setEditingUser] = useState<string | null>(null)
     const [editQuota, setEditQuota] = useState('')
@@ -121,10 +128,30 @@ export default function AdminPage() {
 
     async function fetchStats() {
         const { count: userCount } = await supabase.from('user_plans').select('*', { count: 'exact', head: true })
-        const { data: allPayments } = await supabase.from('payment_requests').select('*')
+        const { data: allPayments } = await supabase.from('payment_requests').select('*').order('created_at', { ascending: true })
         const pending = allPayments?.filter(p => p.status === 'pending').length || 0
         const revenue = allPayments?.filter(p => p.status === 'approved').reduce((sum, p) => sum + (p.amount || 0), 0) || 0
         const { count: activeKeys } = await supabase.from('enterprise_keys').select('*', { count: 'exact', head: true }).eq('is_active', true)
+
+        // Compute revenue over time
+        const revMap: Record<string, number> = {}
+        allPayments?.filter(p => p.status === 'approved').forEach(p => {
+            const date = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            revMap[date] = (revMap[date] || 0) + p.amount
+        })
+        setRevenueData(Object.keys(revMap).map(date => ({ date, revenue: revMap[date] })))
+
+        // Compute user growth
+        const { data: allUsers } = await supabase.from('user_plans').select('created_at').order('created_at', { ascending: true })
+        const usrMap: Record<string, number> = {}
+        let runningTotal = 0
+        allUsers?.forEach(u => {
+            const date = new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            runningTotal += 1
+            usrMap[date] = runningTotal
+        })
+        setUserGrowthData(Object.keys(usrMap).map(date => ({ date, users: usrMap[date] })))
+
         setStats({
             totalUsers: userCount || 0,
             totalPayments: allPayments?.length || 0,
@@ -147,11 +174,11 @@ export default function AdminPage() {
     async function fetchUsers() {
         const { data } = await supabase.from('user_plans').select('*').order('created_at', { ascending: false })
         if (data) {
-            // Try to get emails from payment_requests for each user
+            // Try to get emails from payment_requests for each user as fallback
             const { data: allPayments } = await supabase.from('payment_requests').select('user_id, user_email')
             const emailMap: Record<string, string> = {}
             allPayments?.forEach(p => { if (p.user_email) emailMap[p.user_id] = p.user_email })
-            setUsers(data.map(u => ({ ...u, email: emailMap[u.user_id] || '' })))
+            setUsers(data.map(u => ({ ...u, email: u.email || emailMap[u.user_id] || '' })))
         }
     }
 
@@ -163,7 +190,7 @@ export default function AdminPage() {
     useEffect(() => { if (isAdmin) fetchPayments() }, [filter, isAdmin])
 
     async function handleApprove(payment: PaymentRequest) {
-        if (!confirm(`Approve ₹${payment.amount} for ${payment.plan_requested} credits?`)) return
+        if (!confirm(`Approve ₹${payment.amount} for ${payment.plan_requested} plan?`)) return
         await supabase.from('payment_requests').update({ status: 'approved' }).eq('id', payment.id)
         const plan = PLANS[payment.plan_requested]
         if (plan) {
@@ -175,6 +202,22 @@ export default function AdminPage() {
                 quota: newQuota,
                 used: currentPlan?.used || 0
             })
+        }
+        fetchPayments()
+        fetchStats()
+        fetchUsers()
+    }
+
+    async function handleRevert(payment: PaymentRequest) {
+        if (!confirm('Revert this payment to pending? This will deduct the Skillcoins granted.')) return
+        await supabase.from('payment_requests').update({ status: 'pending' }).eq('id', payment.id)
+        const plan = PLANS[payment.plan_requested]
+        if (plan) {
+            const { data: currentPlan } = await supabase.from('user_plans').select('*').eq('user_id', payment.user_id).single()
+            if (currentPlan) {
+                const newQuota = Math.max(0, currentPlan.quota - plan.quota)
+                await supabase.from('user_plans').update({ quota: newQuota }).eq('user_id', payment.user_id)
+            }
         }
         fetchPayments()
         fetchStats()
@@ -204,8 +247,8 @@ export default function AdminPage() {
         fetchStats()
     }
 
-    async function handleAddCredits(userId: string, currentQuota: number) {
-        const extra = prompt('How many credits to add?')
+    async function handleAddSkillcoins(userId: string, currentQuota: number) {
+        const extra = prompt('How many Skillcoins to add?')
         if (!extra) return
         const num = parseInt(extra)
         if (isNaN(num) || num <= 0) return
@@ -215,11 +258,17 @@ export default function AdminPage() {
         fetchStats()
     }
 
-    async function handleManualCredits() {
+    async function handleBanUser(userId: string, currentBan: boolean) {
+        if (!confirm(currentBan ? 'Unban this user? They will be able to scrape again.' : 'Ban this user? They will lose access to the scraper.')) return
+        await supabase.from('user_plans').update({ is_banned: !currentBan }).eq('user_id', userId)
+        fetchUsers()
+    }
+
+    async function handleManualSkillcoins() {
         if (!manualEmail || !manualCredits) return
         setManualMsg('')
         const credits = parseInt(manualCredits)
-        if (isNaN(credits) || credits <= 0) { setManualMsg('❌ Enter valid credit number'); return }
+        if (isNaN(credits) || credits <= 0) { setManualMsg('❌ Enter valid Skillcoin amount'); return }
 
         // Find user_id from payment_requests by email
         const { data: pmt } = await supabase.from('payment_requests')
@@ -243,7 +292,7 @@ export default function AdminPage() {
             used: currentPlan?.used || 0
         })
 
-        setManualMsg(`✅ Added ${credits} credits to ${manualEmail} (total: ${newQuota})`)
+        setManualMsg(`✅ Added ${credits} Skillcoins to ${manualEmail} (total: ${newQuota})`)
         setManualEmail('')
         setManualCredits('')
         fetchUsers()
@@ -343,7 +392,7 @@ export default function AdminPage() {
     }
 
     async function handleApproveReferral(ref: Referral) {
-        if (!confirm('Approve this referral and grant 50 credits to the referrer?')) return
+        if (!confirm('Approve this referral and grant 50 Skillcoins to the referrer?')) return
         await supabase.from('referrals').update({ status: 'verified' }).eq('id', ref.id)
 
         const referrer = users.find(u => u.user_id === ref.referrer_id)
@@ -420,6 +469,10 @@ export default function AdminPage() {
                     <div className="glass !p-4 mb-4">
                         <div className="text-[11px] uppercase tracking-[0.15em] text-white/40 font-bold mb-3">Admin Menu</div>
                         <div className="flex flex-col gap-1.5">
+                            <button onClick={() => setTab('overview')}
+                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-3 ${tab === 'overview' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
+                                <span className="text-lg">📊</span> Overview & Charts
+                            </button>
                             <button onClick={() => setTab('payments')}
                                 className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-3 ${tab === 'payments' ? 'bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
                                 <span className="text-lg">💳</span> Payments & Upgrades
@@ -470,7 +523,43 @@ export default function AdminPage() {
                 {/* Main Content Area */}
                 <main className="flex-1 min-w-0">
 
-                    {tab === 'payments' ? (
+                    {tab === 'overview' ? (
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                            <h2 className="text-2xl font-bold mb-5">📈 Platform Overview</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div className="glass !p-6 h-[350px]">
+                                    <h3 className="text-lg font-semibold mb-6">Revenue Growth</h3>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={revenueData}>
+                                            <defs>
+                                                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                            <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} />
+                                            <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v: number) => `₹${v}`} />
+                                            <Tooltip contentStyle={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
+                                            <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="glass !p-6 h-[350px]">
+                                    <h3 className="text-lg font-semibold mb-6">User Acquisition</h3>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={userGrowthData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                            <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} />
+                                            <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} />
+                                            <Tooltip contentStyle={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
+                                            <Line type="monotone" dataKey="users" stroke="#00f0ff" strokeWidth={3} dot={{ fill: '#00f0ff', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ) : tab === 'payments' ? (
                         <>
                             {/* Manual Credits */}
                             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
@@ -483,9 +572,9 @@ export default function AdminPage() {
                                     <input type="number" value={manualCredits} onChange={e => setManualCredits(e.target.value)}
                                         placeholder="Credits"
                                         className="w-full sm:w-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
-                                    <button onClick={handleManualCredits}
+                                    <button onClick={handleManualSkillcoins}
                                         className="btn-glow !py-3 !px-6 !text-[14px] whitespace-nowrap">
-                                        Give Credits
+                                        Grant Skillcoins
                                     </button>
                                 </div>
                                 {manualMsg && <p className="mt-3 text-sm">{manualMsg}</p>}
@@ -547,7 +636,7 @@ export default function AdminPage() {
                                                         <span className="text-white font-semibold">₹{p.amount}</span>
                                                         <span className="text-white/20"> → </span>
                                                         <span className="text-[#00f0ff] font-semibold">{p.plan_requested}</span>
-                                                        <span className="text-white/20"> ({PLANS[p.plan_requested]?.quota.toLocaleString()} credits)</span>
+                                                        <span className="text-white/20"> ({PLANS[p.plan_requested]?.quota.toLocaleString()} Skillcoins)</span>
                                                     </div>
                                                     <div className="text-xs text-white/20 flex flex-wrap gap-x-3">
                                                         <span>TXN: <span className="text-white/40">{p.transaction_id}</span></span>
@@ -576,9 +665,7 @@ export default function AdminPage() {
                                                         </>
                                                     )}
                                                     {p.status !== 'pending' && (
-                                                        <button onClick={() => {
-                                                            supabase.from('payment_requests').update({ status: 'pending' }).eq('id', p.id).then(() => { fetchPayments(); fetchStats() })
-                                                        }}
+                                                        <button onClick={() => handleRevert(p)}
                                                             className="text-sm py-2 px-4 rounded-full bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition-all font-medium">
                                                             ↩️ Revert to Pending
                                                         </button>
@@ -594,7 +681,7 @@ export default function AdminPage() {
                         /* ===== USERS TAB ===== */
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                             <h2 className="text-2xl font-bold mb-5">👥 User Management</h2>
-                            <p className="text-white/30 text-sm font-light mb-6">Manage user plans, credits, and usage. Click Edit to modify any user&apos;s data.</p>
+                            <p className="text-white/30 text-sm font-light mb-6">Manage user plans, Skillcoins, and usage. Click Edit to modify any user&apos;s data.</p>
 
                             {users.length === 0 ? (
                                 <div className="glass text-center py-12">
@@ -623,12 +710,12 @@ export default function AdminPage() {
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Total Credits (Quota)</label>
+                                                            <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Total Skillcoins (Quota)</label>
                                                             <input type="number" value={editQuota} onChange={e => setEditQuota(e.target.value)}
                                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all" />
                                                         </div>
                                                         <div>
-                                                            <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Used Credits</label>
+                                                            <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Used Skillcoins</label>
                                                             <input type="number" value={editUsed} onChange={e => setEditUsed(e.target.value)}
                                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all" />
                                                         </div>
@@ -649,7 +736,7 @@ export default function AdminPage() {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                             <span className="text-sm font-semibold text-white">
-                                                                {u.email || u.user_id.slice(0, 16) + '...'}
+                                                                {u.full_name ? `${u.full_name} (${u.email})` : (u.email || u.user_id.slice(0, 16) + '...')}
                                                             </span>
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
                                                             ${u.plan === 'free' ? 'bg-white/5 text-white/40' :
@@ -662,6 +749,8 @@ export default function AdminPage() {
                                                             <span>Quota: <span className="text-white/60 font-medium">{u.quota.toLocaleString()}</span></span>
                                                             <span>Used: <span className="text-white/60 font-medium">{u.used.toLocaleString()}</span></span>
                                                             <span>Remaining: <span className="text-[#00f0ff] font-medium">{(u.quota - u.used).toLocaleString()}</span></span>
+                                                            <span>Referral Code: <span className="text-[#00f0ff] font-medium">{u.referral_code || u.user_id.slice(0, 8).toUpperCase()}</span></span>
+                                                            {u.is_banned && <span className="text-red-400 font-bold uppercase tracking-wider text-[10px] bg-red-500/10 px-2 py-0.5 rounded-full flex items-center">BANNED</span>}
                                                         </div>
                                                         <div className="w-full h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
                                                             <div className="h-full rounded-full transition-all"
@@ -671,10 +760,14 @@ export default function AdminPage() {
                                                                 }} />
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-2 flex-shrink-0">
-                                                        <button onClick={() => handleAddCredits(u.user_id, u.quota)}
+                                                    <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                                                        <button onClick={() => handleBanUser(u.user_id, u.is_banned)}
+                                                            className={`text-sm py-2 px-4 rounded-full border transition-all font-medium ${u.is_banned ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'}`}>
+                                                            {u.is_banned ? '🟢 Unban' : '🚫 Ban'}
+                                                        </button>
+                                                        <button onClick={() => handleAddSkillcoins(u.user_id, u.quota)}
                                                             className="text-sm py-2 px-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
-                                                            ➕ Add Credits
+                                                            ➕ Add Skillcoins
                                                         </button>
                                                         <button onClick={() => {
                                                             setEditingUser(u.user_id)

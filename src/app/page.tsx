@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import AdBanner from '@/components/AdBanner'
 
 export default function Home() {
   return (
@@ -50,10 +51,11 @@ export default function Home() {
               </Link>
             </div>
           </motion.div>
-
-
         </div>
       </section>
+
+      {/* Ad Space */}
+      <AdBanner className="my-10" dataAdSlot="9355458561" />
 
       {/* ━━━ FEATURES ━━━ */}
       <section className="w-full" style={{ paddingTop: '80px', paddingBottom: '100px' }}>
@@ -90,10 +92,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* ━━━ SOCIAL PROOF STATS ━━━ */}
-      <section className="w-full" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
+      < section className="w-full" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <div className="container-main">
           <div className="glass p-8 sm:p-10 flex flex-col sm:flex-row items-center justify-around gap-8 text-center">
             {[
@@ -110,10 +112,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* ━━━ TESTIMONIALS ━━━ */}
-      <section className="w-full" style={{ paddingTop: '40px', paddingBottom: '80px' }}>
+      < section className="w-full" style={{ paddingTop: '40px', paddingBottom: '80px' }}>
         <div className="container-main">
           <div className="text-center mb-12">
             <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
@@ -152,10 +154,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* ━━━ CTA BANNER ━━━ */}
-      <section className="w-full" style={{ paddingTop: '40px', paddingBottom: '100px' }}>
+      < section className="w-full" style={{ paddingTop: '40px', paddingBottom: '100px' }}>
         <div className="container-main">
           <div className="glass p-10 sm:p-16 text-center relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,240,255,0.03), transparent)' }} />
@@ -169,7 +171,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
     </>
   )
 }

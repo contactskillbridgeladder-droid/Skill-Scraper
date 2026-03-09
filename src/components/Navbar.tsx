@@ -7,9 +7,10 @@ import { supabase } from '@/lib/supabase'
 
 const NAV_LINKS = [
     { href: '/pricing', label: 'Pricing' },
+    { href: '/enterprise', label: 'Enterprise' },
+    { href: '/referrals', label: 'Referrals' },
     { href: '/download', label: 'Download' },
     { href: '/contact', label: 'Support' },
-    { href: '/help', label: 'Help' },
 ]
 
 export default function Navbar() {

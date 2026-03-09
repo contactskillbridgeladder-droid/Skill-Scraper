@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
+import AdBanner from '@/components/AdBanner'
 
 interface BlogPost {
     id: string
@@ -125,6 +126,8 @@ export default function BlogArticlePage() {
                     </motion.h1>
                 </header>
 
+                <AdBanner className="mb-8" dataAdSlot="9355458561" />
+
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
                     className="glass">
                     {renderContent(post.content)}
@@ -139,6 +142,8 @@ export default function BlogArticlePage() {
                     </p>
                     <Link href="/download" className="btn-glow inline-block">Download Extension</Link>
                 </motion.div>
+
+                <AdBanner className="mt-12" dataAdSlot="9355458561" />
             </div>
         </article>
     )
