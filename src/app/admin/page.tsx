@@ -27,6 +27,21 @@ interface UserPlan {
     created_at: string
 }
 
+interface BlogPost {
+    id: string
+    slug: string
+    title: string
+    excerpt: string
+    content: string
+    tag: string
+    read_time: string
+    meta_title: string
+    meta_description: string
+    meta_keywords: string[]
+    published: boolean
+    created_at: string
+}
+
 interface DashStats {
     totalUsers: number
     totalPayments: number
@@ -42,7 +57,7 @@ export default function AdminPage() {
     const [users, setUsers] = useState<(UserPlan & { email?: string })[]>([])
     const [loading, setLoading] = useState(true)
     const [isAdmin, setIsAdmin] = useState(false)
-    const [tab, setTab] = useState<'payments' | 'users'>('payments')
+    const [tab, setTab] = useState<'payments' | 'users' | 'blog'>('payments')
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
     const [stats, setStats] = useState<DashStats>({ totalUsers: 0, totalPayments: 0, pendingPayments: 0, totalRevenue: 0 })
     const [previewImg, setPreviewImg] = useState<string | null>(null)
@@ -53,6 +68,11 @@ export default function AdminPage() {
     const [manualEmail, setManualEmail] = useState('')
     const [manualCredits, setManualCredits] = useState('')
     const [manualMsg, setManualMsg] = useState('')
+    // Blog state
+    const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
+    const [blogEditing, setBlogEditing] = useState<BlogPost | null>(null)
+    const [blogForm, setBlogForm] = useState({ slug: '', title: '', excerpt: '', content: '', tag: 'Guide', read_time: '5 min read', meta_title: '', meta_description: '', meta_keywords: '', published: true })
+    const [blogMsg, setBlogMsg] = useState('')
     const router = useRouter()
 
     useEffect(() => { checkAdmin() }, [])
@@ -65,6 +85,7 @@ export default function AdminPage() {
         fetchPayments()
         fetchStats()
         fetchUsers()
+        fetchBlogPosts()
     }
 
     async function fetchStats() {
@@ -191,6 +212,75 @@ export default function AdminPage() {
         fetchStats()
     }
 
+    // ===== BLOG FUNCTIONS =====
+    async function fetchBlogPosts() {
+        const { data } = await supabase.from('blog_posts').select('*').order('created_at', { ascending: false })
+        if (data) setBlogPosts(data)
+    }
+
+    function resetBlogForm() {
+        setBlogForm({ slug: '', title: '', excerpt: '', content: '', tag: 'Guide', read_time: '5 min read', meta_title: '', meta_description: '', meta_keywords: '', published: true })
+        setBlogEditing(null)
+        setBlogMsg('')
+    }
+
+    function startEditPost(post: BlogPost) {
+        setBlogEditing(post)
+        setBlogForm({
+            slug: post.slug,
+            title: post.title,
+            excerpt: post.excerpt,
+            content: post.content,
+            tag: post.tag,
+            read_time: post.read_time,
+            meta_title: post.meta_title || '',
+            meta_description: post.meta_description || '',
+            meta_keywords: (post.meta_keywords || []).join(', '),
+            published: post.published
+        })
+    }
+
+    async function handleSaveBlog() {
+        if (!blogForm.slug || !blogForm.title || !blogForm.content) {
+            setBlogMsg('❌ Slug, title, and content are required'); return
+        }
+        const payload = {
+            slug: blogForm.slug,
+            title: blogForm.title,
+            excerpt: blogForm.excerpt,
+            content: blogForm.content,
+            tag: blogForm.tag,
+            read_time: blogForm.read_time,
+            meta_title: blogForm.meta_title || blogForm.title,
+            meta_description: blogForm.meta_description || blogForm.excerpt,
+            meta_keywords: blogForm.meta_keywords.split(',').map(k => k.trim()).filter(Boolean),
+            published: blogForm.published,
+            updated_at: new Date().toISOString()
+        }
+
+        if (blogEditing) {
+            await supabase.from('blog_posts').update(payload).eq('id', blogEditing.id)
+            setBlogMsg('✅ Article updated!')
+        } else {
+            const { error } = await supabase.from('blog_posts').insert(payload)
+            if (error) { setBlogMsg('❌ ' + error.message); return }
+            setBlogMsg('✅ Article created!')
+        }
+        resetBlogForm()
+        fetchBlogPosts()
+    }
+
+    async function handleDeletePost(id: string) {
+        if (!confirm('Delete this article permanently?')) return
+        await supabase.from('blog_posts').delete().eq('id', id)
+        fetchBlogPosts()
+    }
+
+    async function handleTogglePublish(post: BlogPost) {
+        await supabase.from('blog_posts').update({ published: !post.published }).eq('id', post.id)
+        fetchBlogPosts()
+    }
+
     if (!isAdmin) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -247,7 +337,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Tab Switcher */}
-                <div className="flex gap-1 p-1 rounded-xl mb-8" style={{ background: 'rgba(0,0,0,0.3)', maxWidth: '400px' }}>
+                <div className="flex gap-1 p-1 rounded-xl mb-8" style={{ background: 'rgba(0,0,0,0.3)', maxWidth: '520px' }}>
                     <button onClick={() => setTab('payments')}
                         className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'payments' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
                         style={tab === 'payments' ? { background: 'rgba(0,240,255,0.1)', color: 'var(--accent)' } : {}}>
@@ -256,7 +346,12 @@ export default function AdminPage() {
                     <button onClick={() => setTab('users')}
                         className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'users' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
                         style={tab === 'users' ? { background: 'rgba(124,58,237,0.12)', color: 'var(--accent2)' } : {}}>
-                        👥 Users & Credits
+                        👥 Users
+                    </button>
+                    <button onClick={() => setTab('blog')}
+                        className={`flex-1 py-3 rounded-lg text-sm font-semibold transition ${tab === 'blog' ? 'text-white' : 'text-white/35 hover:text-white/60'}`}
+                        style={tab === 'blog' ? { background: 'rgba(34,197,94,0.12)', color: '#22c55e' } : {}}>
+                        📝 Blog
                     </button>
                 </div>
 
@@ -380,7 +475,7 @@ export default function AdminPage() {
                             )}
                         </motion.div>
                     </>
-                ) : (
+                ) : tab === 'users' ? (
                     /* ===== USERS TAB ===== */
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                         <h2 className="text-2xl font-bold mb-5">👥 User Management</h2>
@@ -399,7 +494,6 @@ export default function AdminPage() {
                                         className="glass !p-5">
 
                                         {editingUser === u.user_id ? (
-                                            /* Edit Mode */
                                             <div>
                                                 <h4 className="text-sm font-semibold text-white/50 mb-3">
                                                     ✏️ Editing: <span className="text-white">{u.email || u.user_id.slice(0, 12) + '...'}</span>
@@ -436,7 +530,6 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            /* View Mode */
                                             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -455,7 +548,6 @@ export default function AdminPage() {
                                                         <span>Used: <span className="text-white/60 font-medium">{u.used.toLocaleString()}</span></span>
                                                         <span>Remaining: <span className="text-[#00f0ff] font-medium">{(u.quota - u.used).toLocaleString()}</span></span>
                                                     </div>
-                                                    {/* Usage bar */}
                                                     <div className="w-full h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
                                                         <div className="h-full rounded-full transition-all"
                                                             style={{
@@ -464,7 +556,6 @@ export default function AdminPage() {
                                                             }} />
                                                     </div>
                                                 </div>
-
                                                 <div className="flex gap-2 flex-shrink-0">
                                                     <button onClick={() => handleAddCredits(u.user_id, u.quota)}
                                                         className="text-sm py-2 px-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
@@ -482,6 +573,161 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
                                         )}
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </motion.div>
+                ) : (
+                    /* ===== BLOG TAB ===== */
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <h2 className="text-2xl font-bold mb-5">📝 Blog Management</h2>
+
+                        {/* Article Form */}
+                        <div className="glass mb-8">
+                            <h3 className="text-lg font-semibold mb-4">{blogEditing ? '✏️ Edit Article' : '➕ New Article'}</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Title *</label>
+                                    <input type="text" value={blogForm.title}
+                                        onChange={e => setBlogForm(f => ({ ...f, title: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }))}
+                                        placeholder="How to Scrape Google Maps..."
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Slug (URL) *</label>
+                                    <input type="text" value={blogForm.slug}
+                                        onChange={e => setBlogForm(f => ({ ...f, slug: e.target.value }))}
+                                        placeholder="how-to-scrape-google-maps"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                </div>
+                            </div>
+                            <div className="mb-3">
+                                <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Excerpt (Short Description)</label>
+                                <input type="text" value={blogForm.excerpt}
+                                    onChange={e => setBlogForm(f => ({ ...f, excerpt: e.target.value }))}
+                                    placeholder="Learn how to extract business data from Google Maps..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                            </div>
+                            <div className="mb-3">
+                                <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Content (Markdown) *</label>
+                                <textarea value={blogForm.content}
+                                    onChange={e => setBlogForm(f => ({ ...f, content: e.target.value }))}
+                                    placeholder="## Introduction&#10;&#10;Write your article content here using Markdown...&#10;&#10;## Step 1&#10;&#10;**Bold text** and [links](/url) are supported."
+                                    rows={12}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all font-mono text-sm" />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                                <div>
+                                    <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Tag</label>
+                                    <select value={blogForm.tag} onChange={e => setBlogForm(f => ({ ...f, tag: e.target.value }))}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all">
+                                        <option value="Guide">Guide</option>
+                                        <option value="Tutorial">Tutorial</option>
+                                        <option value="Comparison">Comparison</option>
+                                        <option value="News">News</option>
+                                        <option value="Tips">Tips</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1 block">Read Time</label>
+                                    <input type="text" value={blogForm.read_time}
+                                        onChange={e => setBlogForm(f => ({ ...f, read_time: e.target.value }))}
+                                        placeholder="5 min read"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all" />
+                                </div>
+                                <div className="flex items-end">
+                                    <label className="flex items-center gap-3 cursor-pointer py-3">
+                                        <input type="checkbox" checked={blogForm.published}
+                                            onChange={e => setBlogForm(f => ({ ...f, published: e.target.checked }))}
+                                            className="w-5 h-5 rounded bg-white/5 border border-white/20 accent-[#00f0ff]" />
+                                        <span className="text-sm text-white/50">Published</span>
+                                    </label>
+                                </div>
+                            </div>
+                            {/* SEO Fields */}
+                            <details className="mb-4">
+                                <summary className="text-xs text-white/30 cursor-pointer hover:text-white/50 transition-colors mb-3">🔍 SEO Settings (optional)</summary>
+                                <div className="grid grid-cols-1 gap-3">
+                                    <input type="text" value={blogForm.meta_title}
+                                        onChange={e => setBlogForm(f => ({ ...f, meta_title: e.target.value }))}
+                                        placeholder="SEO Title (defaults to article title)"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all text-sm" />
+                                    <input type="text" value={blogForm.meta_description}
+                                        onChange={e => setBlogForm(f => ({ ...f, meta_description: e.target.value }))}
+                                        placeholder="SEO Description (defaults to excerpt)"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all text-sm" />
+                                    <input type="text" value={blogForm.meta_keywords}
+                                        onChange={e => setBlogForm(f => ({ ...f, meta_keywords: e.target.value }))}
+                                        placeholder="Keywords (comma separated): google maps scraper, lead gen"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 transition-all text-sm" />
+                                </div>
+                            </details>
+                            <div className="flex gap-2 flex-wrap">
+                                <button onClick={handleSaveBlog}
+                                    className="btn-glow !py-3 !px-6 !text-[14px]">
+                                    {blogEditing ? '💾 Update Article' : '🚀 Publish Article'}
+                                </button>
+                                {blogEditing && (
+                                    <button onClick={resetBlogForm}
+                                        className="text-sm py-3 px-6 rounded-full bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition-all font-medium">
+                                        Cancel
+                                    </button>
+                                )}
+                            </div>
+                            {blogMsg && <p className="mt-3 text-sm">{blogMsg}</p>}
+                        </div>
+
+                        {/* Article List */}
+                        <h3 className="text-lg font-semibold mb-4">📋 All Articles ({blogPosts.length})</h3>
+                        {blogPosts.length === 0 ? (
+                            <div className="glass text-center py-12">
+                                <div className="text-4xl mb-3">📭</div>
+                                <p className="text-white/35 font-light">No articles yet. Create your first one above!</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4">
+                                {blogPosts.map((post, i) => (
+                                    <motion.div key={post.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.04 }}
+                                        className="glass !p-5">
+                                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                                        ${post.published ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
+                                                        {post.published ? 'LIVE' : 'DRAFT'}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-white/5 text-white/30">
+                                                        {post.tag}
+                                                    </span>
+                                                </div>
+                                                <h4 className="text-sm font-semibold text-white mb-1">{post.title}</h4>
+                                                <p className="text-xs text-white/25 truncate">/blog/{post.slug}</p>
+                                                <p className="text-xs text-white/20 mt-1">
+                                                    {new Date(post.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · {post.read_time}
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                                                <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer"
+                                                    className="text-sm py-2 px-3 rounded-full bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition-all font-medium">
+                                                    👁️ View
+                                                </a>
+                                                <button onClick={() => handleTogglePublish(post)}
+                                                    className={`text-sm py-2 px-3 rounded-full border transition-all font-medium
+                                                        ${post.published ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20'}`}>
+                                                    {post.published ? '📥 Unpublish' : '🚀 Publish'}
+                                                </button>
+                                                <button onClick={() => startEditPost(post)}
+                                                    className="text-sm py-2 px-3 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all font-medium">
+                                                    ✏️ Edit
+                                                </button>
+                                                <button onClick={() => handleDeletePost(post.id)}
+                                                    className="text-sm py-2 px-3 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all font-medium">
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </div>
                                     </motion.div>
                                 ))}
                             </div>
