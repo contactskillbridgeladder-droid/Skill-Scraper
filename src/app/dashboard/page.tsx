@@ -13,8 +13,11 @@ interface UserPlan {
     cycle_start?: string
 }
 
+const ADMIN_EMAILS = ['contact.skillbridgeladder@gmail.com', 'skillbridgeladder@gmail.com']
+
 export default function DashboardPage() {
     const [user, setUser] = useState<{ email?: string; id?: string } | null>(null)
+    const [isAdmin, setIsAdmin] = useState(false)
     const [plan, setPlan] = useState<UserPlan | null>(null)
     const [pendingPayment, setPendingPayment] = useState<{ plan_requested: string; created_at: string } | null>(null)
     const [loading, setLoading] = useState(true)
@@ -28,6 +31,7 @@ export default function DashboardPage() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { router.push('/login'); return }
         setUser(user)
+        if (ADMIN_EMAILS.includes(user.email || '')) setIsAdmin(true)
 
         const { data } = await supabase.from('user_plans').select('*').eq('user_id', user.id).single()
         setPlan(data || { plan: 'free', quota: 200, used: 0 })
@@ -71,6 +75,11 @@ export default function DashboardPage() {
                         <span className="text-lg font-bold tracking-tight">Skill Scraper</span>
                     </Link>
                     <div className="flex items-center gap-4">
+                        {isAdmin && (
+                            <Link href="/admin" className="hidden sm:flex text-[13px] font-bold tracking-wider uppercase items-center gap-2 px-3 py-1.5 rounded-lg border border-orange-500/30 text-orange-400 hover:bg-orange-500/10 transition-colors">
+                                ⚙️ Admin Panel
+                            </Link>
+                        )}
                         <span className="text-sm text-white/40 hidden sm:block">{user?.email}</span>
                         <button onClick={handleLogout} className="btn-ghost !py-2.5 !px-5 !text-[13px]">
                             Logout
@@ -144,14 +153,52 @@ export default function DashboardPage() {
                         </div>
 
                         {plan?.plan !== 'enterprise' ? (
-                            <Link href="/upgrade" className="btn-glow w-full text-center !text-[14px]">
+                            <Link href="/upgrade" className="btn-glow w-full text-center !text-[14px] mb-4">
                                 Upgrade Plan 🚀
                             </Link>
                         ) : (
-                            <div className="py-3 px-6 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold"
+                            <div className="py-3 px-6 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold mb-4"
                                 style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
                                 ✅ Enterprise Key Active
                             </div>
+                        )}
+
+                        {plan?.plan !== 'enterprise' && (
+                            <form
+                                onSubmit={async (e) => {
+                                    e.preventDefault()
+                                    const code = (e.currentTarget.elements.namedItem('keycode') as HTMLInputElement).value
+                                    if (!code) return
+                                    const { data: { session } } = await supabase.auth.getSession()
+                                    if (!session) return
+
+                                    const res = await fetch('/api/ext/activate-key', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${session.access_token}`
+                                        },
+                                        body: JSON.stringify({ key_code: code })
+                                    })
+                                    const data = await res.json()
+                                    if (data.success) {
+                                        alert(data.message)
+                                        window.location.reload()
+                                    } else {
+                                        alert(data.error || 'Failed to activate key')
+                                    }
+                                }}
+                                className="mt-auto pt-4 border-t border-white/10"
+                            >
+                                <label className="text-[10px] uppercase font-bold text-white/30 tracking-wider mb-2 block">Unlocks Full Enterprise Access</label>
+                                <div className="flex gap-2">
+                                    <input type="text" name="keycode" placeholder="Paste Master Key..."
+                                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50" />
+                                    <button type="submit" className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-colors">
+                                        Activate
+                                    </button>
+                                </div>
+                            </form>
                         )}
                     </motion.div>
                 </div>
