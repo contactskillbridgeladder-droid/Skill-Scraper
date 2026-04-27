@@ -99,6 +99,19 @@ function LoginInner() {
                         quota: 200,
                         used: 0
                     }, { onConflict: 'user_id' })
+
+                    // Track referral if came from referral link
+                    const refCode = localStorage.getItem('referral_code')
+                    if (refCode) {
+                        try {
+                            await fetch('/api/referral', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ referral_code: refCode, referred_user_id: data.user.id, referred_email: email })
+                            })
+                            localStorage.removeItem('referral_code')
+                        } catch (_) { /* silent */ }
+                    }
                 }
                 setSuccess('Account created! Check your email to verify, then login.')
                 setMode('login')
