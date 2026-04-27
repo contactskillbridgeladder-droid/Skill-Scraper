@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM_EMAIL = 'Skill Scraper <noreply@Scraper.skillbridgeladder.in>'
+const FROM_EMAIL = 'Skill Scraper <noreply@scraper.skillbridgeladder.in>'
 
 async function sendEmail(to: string, subject: string, html: string) {
     if (!RESEND_API_KEY) {
@@ -97,6 +97,21 @@ export async function POST(request: Request) {
                     <a href="https://scraper.skillbridgeladder.in/dashboard" style="display:inline-block; background: linear-gradient(135deg, #00f0ff, #7c3aed); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 50px; font-weight: 700; font-size: 15px;">Get Started →</a>
                 </div>
                 <p style="color: rgba(255,255,255,0.2); font-size: 12px; text-align:center; margin-top: 32px;">Skill Scraper · skillbridgeladder.in</p>
+            </div>`
+        } else if (type === 'admin_alert') {
+            subject = `🚨 New Support Ticket: ${plan || 'Support'}`
+            html = `
+            <div style="font-family: Inter, sans-serif; background: #0a0f1a; color: #fff; padding: 40px; border-radius: 16px; max-width: 560px; margin: 0 auto;">
+                <h2 style="color: #00f0ff;">New Support Ticket</h2>
+                <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; margin: 24px 0;">
+                    <p><strong>From:</strong> ${name} (${email})</p>
+                    <p><strong>Category:</strong> ${plan || 'General'}</p>
+                    <p><strong>Message:</strong></p>
+                    <div style="color: rgba(255,255,255,0.7); font-style: italic; border-left: 2px solid #7c3aed; padding-left: 15px;">
+                        ${amount || 'No message provided'}
+                    </div>
+                </div>
+                <a href="https://scraper.skillbridgeladder.in/admin" style="color: #00f0ff;">View in Admin Panel →</a>
             </div>`
         } else {
             return NextResponse.json({ error: 'Invalid notification type' }, { status: 400 })

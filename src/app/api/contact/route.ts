@@ -24,9 +24,23 @@ export async function POST(request: Request) {
         })
 
         if (error) {
-            // If table doesn't exist, still return success (form just won't persist)
             console.error('Support ticket insert error:', error)
         }
+
+        // Notify Admin
+        try {
+            await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://scraper.skillbridgeladder.in'}/api/notify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'admin_alert',
+                    email: 'contact.skillbridgeladder@gmail.com', // Admin destination
+                    name: name,
+                    plan: category, // Using plan field as category
+                    amount: message // Using amount field as message
+                })
+            })
+        } catch (_) { /* silent */ }
 
         return NextResponse.json({ success: true })
     } catch (err: any) {
