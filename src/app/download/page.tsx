@@ -5,9 +5,13 @@ import Link from 'next/link'
 
 export default function DownloadPage() {
     return (
-        <>
+        <div className="w-full min-h-screen relative overflow-hidden" style={{ background: '#0a0f1a' }}>
+            {/* Background Ambience */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-20 pointer-events-none" style={{ background: 'linear-gradient(to right, #00f0ff, #7c3aed)' }} />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-10 pointer-events-none" style={{ background: 'linear-gradient(to left, #7c3aed, #00f0ff)' }} />
+
             {/* Header */}
-            <section className="w-full" style={{ paddingTop: '160px', paddingBottom: '40px' }}>
+            <section className="w-full relative z-10" style={{ paddingTop: '160px', paddingBottom: '40px' }}>
                 <div className="container-main text-center">
                     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
                         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }} className="font-black tracking-[-0.03em] mb-4">
@@ -21,7 +25,7 @@ export default function DownloadPage() {
             </section>
 
             {/* Steps */}
-            <section className="w-full" style={{ paddingBottom: '48px' }}>
+            <section className="w-full relative z-10" style={{ paddingBottom: '48px' }}>
                 <div className="container-main" style={{ maxWidth: '960px' }}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         {[
@@ -48,7 +52,7 @@ export default function DownloadPage() {
             </section>
 
             {/* Download CTA */}
-            <section className="w-full" style={{ paddingBottom: '100px' }}>
+            <section className="w-full relative z-10" style={{ paddingBottom: '100px' }}>
                 <div className="container-main" style={{ maxWidth: '580px' }}>
                     <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.5, duration: 0.5 }}
@@ -60,15 +64,19 @@ export default function DownloadPage() {
                             <p className="text-white/35 font-light mb-8 text-[15px]">
                                 Free to install. Latest fixes included.
                             </p>
-                            <a href="/skill-scraper-v1.7.3.zip" download className="btn-glow !text-[17px] !py-4 !px-12 w-full sm:w-auto">
-                                Download Extension (v1.7.3) - Latest
+                            <a href="/skill-scraper-v2.0.0.zip" download className="btn-glow !text-[17px] !py-4 !px-12 w-full sm:w-auto">
+                                Download Extension (v2.0.0) - Latest
                             </a>
 
                             <div className="mt-8 pt-6 border-t border-white/10">
                                 <h4 className="text-[14px] text-white/50 mb-3 font-medium">Previous Versions</h4>
                                 <div className="flex flex-col gap-2 w-full max-w-[240px] mx-auto">
-                                    <a href="/skill-scraper-v1.7.2.zip" download className="text-[13px] py-2 px-4 rounded-md bg-white/5 hover:bg-white/10 text-white/70 transition-colors border border-white/5 flex justify-between items-center">
-                                        <span>v1.7.2</span>
+                                    <a href="/skill-scraper-v1.7.4.zip" download className="text-[13px] py-2 px-4 rounded-md bg-white/5 hover:bg-white/10 text-white/70 transition-colors border border-white/5 flex justify-between items-center">
+                                        <span>v1.7.4</span>
+                                        <span className="text-[11px] opacity-50">.zip</span>
+                                    </a>
+                                    <a href="/skill-scraper-v1.7.3.zip" download className="text-[13px] py-2 px-4 rounded-md bg-white/5 hover:bg-white/10 text-white/70 transition-colors border border-white/5 flex justify-between items-center">
+                                        <span>v1.7.3</span>
                                         <span className="text-[11px] opacity-50">.zip</span>
                                     </a>
                                 </div>
@@ -91,6 +99,6 @@ export default function DownloadPage() {
                     </div>
                 </div>
             </section>
-        </>
+        </div>
     )
 }

@@ -1,19 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-10 h-10 rounded-full border-t-2 border-[#00f0ff] animate-spin" /></div>}>
+            <LoginInner />
+        </Suspense>
+    )
+}
+
+function LoginInner() {
     const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login')
+    const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirm, setShowConfirm] = useState(false)
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
     const [loading, setLoading] = useState(false)
     const router = useRouter()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         const ref = new URLSearchParams(window.location.search).get('ref')
@@ -53,15 +66,39 @@ export default function LoginPage() {
                     router.push('/dashboard')
                 }
             } else {
-                const { data, error } = await supabase.auth.signUp({ email, password })
-                if (error) throw error
+                if (password !== confirmPassword) {
+                    setError("Passwords do not match!")
+                    setLoading(false)
+                    return
+                }
+
+                const { data, error } = await supabase.auth.signUp({ 
+                    email, 
+                    password,
+                    options: {
+                        data: { full_name: name }
+                    }
+                })
+                
+                if (error) {
+                    if (error.message.toLowerCase().includes("already registered") || error.message.toLowerCase().includes("already exists")) {
+                        // User already exists, send magic link instead
+                        setSuccess('Account already exists! Sending a magic login link to your email...')
+                        await supabase.auth.signInWithOtp({ email })
+                        return
+                    }
+                    throw error
+                }
+
                 if (data.user) {
                     await supabase.from('user_plans').upsert({
                         user_id: data.user.id,
+                        full_name: name || undefined,
+                        email: email,
                         plan: 'free',
                         quota: 200,
                         used: 0
-                    })
+                    }, { onConflict: 'user_id' })
                 }
                 setSuccess('Account created! Check your email to verify, then login.')
                 setMode('login')
@@ -74,13 +111,29 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center p-5" style={{ paddingTop: '100px' }}>
+        <div className="relative min-h-screen flex items-center justify-center p-5 overflow-hidden" style={{ paddingTop: '100px', background: '#0a0f1a' }}>
+            {/* Background Ambience */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-20 pointer-events-none" style={{ background: 'linear-gradient(to right, #00f0ff, #7c3aed)' }} />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-10 pointer-events-none" style={{ background: 'linear-gradient(to left, #7c3aed, #00f0ff)' }} />
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
                 className="glass p-8 w-full max-w-md relative z-10">
 
                 <Link href="/" className="flex flex-col items-center justify-center gap-3 mb-8">
-                    <img src="/logo.png" alt="Skill Scraper" className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
-                    <span className="text-xl font-bold text-grad">Skill Scraper</span>
+                    <div style={{
+                        width: 72, height: 72,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #00f0ff22 0%, #7c3aed33 100%)',
+                        border: '2px solid rgba(0,240,255,0.35)',
+                        boxShadow: '0 0 24px rgba(0,240,255,0.18), inset 0 0 12px rgba(124,58,237,0.12)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: 10,
+                    }}>
+                        <img src="/logo.png" alt="Skill Scraper" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }} />
+                    </div>
+                    <div className="text-center">
+                        <div className="text-xl font-bold text-grad leading-tight">Skill Scraper</div>
+                        <div className="text-[11px] text-white/30 tracking-widest uppercase mt-0.5">Lead Generation Platform</div>
+                    </div>
                 </Link>
 
                 {mode === 'forgot' ? (
@@ -115,9 +168,11 @@ export default function LoginPage() {
                         {/* Google Login */}
                         <button
                             onClick={async () => {
+                                const isExt = searchParams.get('ext') === 'true'
+                                const redirectUrl = `${window.location.origin}/dashboard${isExt ? '?ext=true' : ''}`
                                 await supabase.auth.signInWithOAuth({
                                     provider: 'google',
-                                    options: { redirectTo: `${window.location.origin}/dashboard` }
+                                    options: { redirectTo: redirectUrl }
                                 })
                             }}
                             className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-medium mb-5"
@@ -153,6 +208,14 @@ export default function LoginPage() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                            {mode === 'signup' && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-semibold text-white/35 uppercase tracking-wider ml-1">Full Name</label>
+                                    <input type="text" value={name} onChange={e => setName(e.target.value)}
+                                        placeholder="John Doe" className="input-field" required
+                                        aria-label="Full Name" />
+                                </div>
+                            )}
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-semibold text-white/35 uppercase tracking-wider ml-1">Email</label>
                                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -161,11 +224,33 @@ export default function LoginPage() {
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-semibold text-white/35 uppercase tracking-wider ml-1">Password</label>
-                                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                                    placeholder={mode === 'login' ? 'Enter your password' : 'Create a strong password (min 6 chars)'}
-                                    className="input-field" required minLength={6}
-                                    aria-label="Password" />
+                                <div className="relative">
+                                    <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                                        placeholder={mode === 'login' ? 'Enter your password' : 'Create a strong password (min 6 chars)'}
+                                        className="input-field w-full pr-11" required minLength={6}
+                                        aria-label="Password" />
+                                    <button type="button" onClick={() => setShowPassword(v => !v)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors text-lg select-none"
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                                        {showPassword ? '🙈' : '👁️'}
+                                    </button>
+                                </div>
                             </div>
+                            {mode === 'signup' && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-semibold text-white/35 uppercase tracking-wider ml-1">Confirm Password</label>
+                                    <div className="relative">
+                                        <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                                            placeholder="Confirm your password" className="input-field w-full pr-11" required minLength={6}
+                                            aria-label="Confirm Password" />
+                                        <button type="button" onClick={() => setShowConfirm(v => !v)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors text-lg select-none"
+                                            aria-label={showConfirm ? 'Hide password' : 'Show password'}>
+                                            {showConfirm ? '🙈' : '👁️'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {error && <p className="text-red-400 text-sm">{error}</p>}
                             {success && <p className="text-sm" style={{ color: 'var(--accent)' }}>{success}</p>}

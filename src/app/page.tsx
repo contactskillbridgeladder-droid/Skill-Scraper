@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -6,48 +6,56 @@ import AdBanner from '@/components/AdBanner'
 
 export default function Home() {
   return (
-    <>
+    <div className="w-full min-h-screen relative overflow-hidden" style={{ background: '#0a0f1a' }}>
+      {/* Background Ambience */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-30 pointer-events-none" style={{ background: 'linear-gradient(to right, #00f0ff, #7c3aed)' }} />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-20 pointer-events-none" style={{ background: 'linear-gradient(to left, #7c3aed, #00f0ff)' }} />
+
       {/* ━━━ HERO ━━━ */}
-      <section className="w-full" style={{ paddingTop: '160px', paddingBottom: '64px' }}>
+      <section className="w-full relative z-10" style={{ paddingTop: '180px', paddingBottom: '100px' }}>
         <div className="container-main">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center text-center"
           >
             {/* Badge */}
-            <div
-              className="inline-flex items-center gap-2 px-4 py-1.5 mb-10 rounded-full text-[13px] font-semibold"
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-5 py-2 mb-10 rounded-full text-[13px] font-bold"
               style={{
-                border: '1px solid rgba(0,240,255,0.18)',
-                background: 'rgba(0,240,255,0.05)',
-                color: 'var(--accent)',
-                animation: 'float-slow 5s ease-in-out infinite',
+                border: '1px solid rgba(0,240,255,0.3)',
+                background: 'rgba(0,240,255,0.08)',
+                color: '#00f0ff',
+                boxShadow: '0 0 20px rgba(0,240,255,0.15)'
               }}
             >
-              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)' }} />
-              V2.0 is Live — Scrape Unlimited Leads
-            </div>
+              <span className="w-2 h-2 rounded-full animate-pulse bg-[#00f0ff]" style={{ boxShadow: '0 0 10px #00f0ff' }} />
+              Enterprise V2.0 is Live — Scrape Unlimited Leads
+            </motion.div>
 
             {/* Title */}
-            <h1 style={{ fontSize: 'clamp(2.2rem, 6vw, 4.8rem)' }} className="font-black tracking-[-0.04em] leading-[1.08] mb-6">
-              Unleash the Power of<br />
-              <span className="text-grad">Google Maps Data</span>
+            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5.5rem)' }} className="font-black tracking-tighter leading-[1.05] mb-8 text-white">
+              The Ultimate B2B<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] via-[#7c3aed] to-[#ec4899]">
+                Lead Generation Engine
+              </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-white/40 max-w-[580px] mb-10 font-light leading-relaxed" style={{ fontSize: 'clamp(0.95rem, 2vw, 1.2rem)' }}>
-              Extract phone numbers, WhatsApp, emails, and social media directly from Google Maps into Excel — in seconds.
+            <p className="text-white/50 max-w-[650px] mb-12 font-medium leading-relaxed" style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)' }}>
+              Extract direct phone numbers, WhatsApp, and verified emails directly into our secure cloud. Harness the power of our new <strong>Power BI Analytics</strong> and <strong>Skill RAG AI</strong> to close more deals.
             </p>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-              <Link href="/download" className="btn-glow w-full sm:w-auto text-center">
-                Download Extension
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
+              <Link href="/download" className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #00f0ff, #7c3aed)', color: 'white', boxShadow: '0 10px 30px rgba(124,58,237,0.4)' }}>
+                🚀 Download Free Extension
               </Link>
-              <Link href="/pricing" className="btn-ghost w-full sm:w-auto text-center">
-                View Pricing
+              <Link href="/pricing" className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:bg-white/5 border border-white/10 text-white/80 hover:text-white">
+                View Enterprise Plans
               </Link>
             </div>
           </motion.div>
@@ -55,39 +63,62 @@ export default function Home() {
       </section>
 
       {/* Ad Space */}
-      <AdBanner className="my-10" dataAdSlot="9355458561" />
+      <div className="container-main relative z-10"><AdBanner className="my-10 opacity-80" dataAdSlot="9355458561" /></div>
+
+      {/* ━━━ DASHBOARD PREVIEW ━━━ */}
+      <section className="w-full relative z-10 py-12">
+        <div className="container-main">
+          <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}
+            className="w-full rounded-2xl border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,240,255,0.1)] relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0f1a] z-10 top-[50%]" />
+            <div className="bg-[#111827] w-full h-[400px] sm:h-[600px] flex flex-col">
+              <div className="h-12 border-b border-white/5 flex items-center px-4 gap-2 bg-[#0a0f1a]">
+                <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <div className="w-3 h-3 rounded-full bg-green-500/80" />
+              </div>
+              <div className="flex-1 p-8 grid grid-cols-3 gap-6 opacity-80">
+                <div className="col-span-3 flex gap-4">
+                  {[1,2,3,4].map(i => <div key={i} className="flex-1 h-24 rounded-xl border border-white/5 bg-white/[0.02]" />)}
+                </div>
+                <div className="col-span-2 h-64 rounded-xl border border-white/5 bg-white/[0.02]" />
+                <div className="col-span-1 h-64 rounded-xl border border-white/5 bg-white/[0.02]" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* ━━━ FEATURES ━━━ */}
-      <section className="w-full" style={{ paddingTop: '80px', paddingBottom: '100px' }}>
+      <section className="w-full relative z-10" style={{ paddingTop: '80px', paddingBottom: '120px' }}>
         <div className="container-main">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-              className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4">
-              Everything You Need is <span className="text-grad-cyan">Built-in</span>
+              className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-5 text-white">
+              Enterprise Features <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#7c3aed]">For Everyone</span>
             </motion.h2>
-            <p className="text-white/35 text-[16px] font-light max-w-[480px] mx-auto">
-              We handle the complex scraping so you can focus on closing deals.
+            <p className="text-white/40 text-lg font-medium max-w-[500px] mx-auto">
+              We handle the complex data extraction, hosting, and AI analytics. You focus on closing.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: '🎯', title: 'Precision Targeting', desc: 'Pinpoint leads by country, state, and city.' },
-              { icon: '💬', title: 'WhatsApp Discovery', desc: 'Extract WhatsApp numbers from profiles.' },
-              { icon: '✉️', title: 'Deep Email Search', desc: 'Crawl websites for hidden emails & socials.' },
-              { icon: '📊', title: 'Instant Export', desc: 'Download leads to CSV or Excel instantly.' },
-              { icon: '⚡', title: 'Serverless Speed', desc: 'Runs in your browser. No proxies needed.' },
-              { icon: '🎁', title: 'Free Tier', desc: 'Start scraping with our generous free tier.' },
+              { icon: '🎯', title: 'Unlimited Scraping', desc: 'No limits on your queries. Pinpoint leads by country, state, and city forever.' },
+              { icon: '☁️', title: 'Secure Cloud Sync', desc: 'All extracted leads are securely synced to your cloud dashboard automatically in real-time.' },
+              { icon: '🤖', title: 'Skill RAG AI Engine', desc: 'Chat with your data! Generate custom cold calling scripts and emails based on your live DB.' },
+              { icon: '📊', title: 'Power BI Analytics', desc: 'Access highly dense executive dashboards to monitor your data pipeline and hit rates.' },
+              { icon: '⚡', title: 'Serverless Architecture', desc: 'Runs natively in your browser. No proxy IPs, no complex installations, no heavy downloads.' },
+              { icon: '✅', title: 'CRM Capabilities', desc: 'Track outreach status with one-click "Mark Called" syncing across your entire organization.' },
             ].map((f, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.5 }} viewport={{ once: true }}
-                className="glass p-7 text-center transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-5 mx-auto"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.5 }} viewport={{ once: true }}
+                className="bg-[#111827] border border-white/5 rounded-2xl p-8 hover:bg-[#1f2937] transition-all hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] group">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl mb-6 bg-gradient-to-br from-white/5 to-white/10 border border-white/10 group-hover:border-[#00f0ff]/50 transition-colors">
                   {f.icon}
                 </div>
-                <h3 className="text-[18px] font-semibold mb-2">{f.title}</h3>
-                <p className="text-white/35 text-[14px] font-light leading-relaxed">{f.desc}</p>
+                <h3 className="text-xl font-bold mb-3 text-white">{f.title}</h3>
+                <p className="text-white/40 font-medium leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -95,83 +126,44 @@ export default function Home() {
       </section >
 
       {/* ━━━ SOCIAL PROOF STATS ━━━ */}
-      < section className="w-full" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
+      <section className="w-full relative z-10 py-16 border-y border-white/5 bg-[#111827]">
         <div className="container-main">
-          <div className="glass p-8 sm:p-10 flex flex-col sm:flex-row items-center justify-around gap-8 text-center">
+          <div className="flex flex-col sm:flex-row items-center justify-around gap-12 text-center">
             {[
-              { num: '10,000+', label: 'Leads Scraped' },
-              { num: '500+', label: 'Active Users' },
-              { num: '50+', label: 'Countries' },
-              { num: '4.8★', label: 'User Rating' },
+              { num: '5M+', label: 'Leads Extracted' },
+              { num: '2,500+', label: 'Active Teams' },
+              { num: 'Unlimited', label: 'Export Quota' },
+              { num: '4.9★', label: 'Chrome Rating' },
             ].map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }} viewport={{ once: true }}>
-                <div className="text-2xl sm:text-3xl font-black text-grad-cyan mb-1">{s.num}</div>
-                <div className="text-[11px] uppercase tracking-[0.15em] text-white/25 font-semibold">{s.label}</div>
+              <motion.div key={i} initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.1 }} viewport={{ once: true }}>
+                <div className="text-4xl sm:text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#7c3aed]">{s.num}</div>
+                <div className="text-sm uppercase tracking-[0.2em] text-white/30 font-bold">{s.label}</div>
               </motion.div>
             ))}
           </div>
         </div>
-      </section >
-
-      {/* ━━━ TESTIMONIALS ━━━ */}
-      < section className="w-full" style={{ paddingTop: '40px', paddingBottom: '80px' }}>
-        <div className="container-main">
-          <div className="text-center mb-12">
-            <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-              className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              Trusted by <span className="text-grad">Professionals</span>
-            </motion.h2>
-            <p className="text-white/35 text-[16px] font-light max-w-[480px] mx-auto">
-              See what our users are saying about Skill Scraper.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              { name: 'Rahul S.', role: 'Real Estate Agent', text: 'Skill Scraper saved me hours of manual work. I can now find leads from any city in India within minutes!', avatar: '🏠' },
-              { name: 'Priya M.', role: 'Marketing Agency', text: 'The WhatsApp number extraction is a game-changer. Our outreach campaigns are 3x more effective now.', avatar: '📈' },
-              { name: 'Amit K.', role: 'Sales Consultant', text: 'Best investment I\'ve made. The free tier alone gives enough credits to close deals every month.', avatar: '🎯' },
-            ].map((t, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 25 }} whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.5 }} viewport={{ once: true }}
-                className="glass p-7">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm">{t.name}</div>
-                    <div className="text-[11px] text-white/30">{t.role}</div>
-                  </div>
-                </div>
-                <p className="text-white/40 text-[14px] font-light leading-relaxed">&ldquo;{t.text}&rdquo;</p>
-                <div className="flex gap-0.5 mt-4">
-                  {[1, 2, 3, 4, 5].map(s => <span key={s} className="text-yellow-400 text-sm">★</span>)}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section >
+      </section>
 
       {/* ━━━ CTA BANNER ━━━ */}
-      < section className="w-full" style={{ paddingTop: '40px', paddingBottom: '100px' }}>
+      <section className="w-full relative z-10 py-32">
         <div className="container-main">
-          <div className="glass p-10 sm:p-16 text-center relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,240,255,0.03), transparent)' }} />
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 relative z-10">Ready to grow your business?</h2>
-            <p className="text-white/35 font-light mb-8 max-w-[460px] mx-auto relative z-10">
-              Join thousands of professionals using Skill Scraper.
+          <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="bg-gradient-to-br from-[#111827] to-[#0a0f1a] border border-[#00f0ff]/20 rounded-3xl p-12 sm:p-20 text-center relative overflow-hidden shadow-[0_0_100px_rgba(0,240,255,0.1)]">
+            <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #00f0ff 0%, transparent 70%)' }} />
+            <h2 className="text-4xl sm:text-5xl font-black mb-6 relative z-10 text-white">Dominate Your Market Today.</h2>
+            <p className="text-white/50 text-xl font-medium mb-10 max-w-[600px] mx-auto relative z-10">
+              Join thousands of elite sales professionals using Skill Scraper Enterprise.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
-              <Link href="/download" className="btn-glow w-full sm:w-auto text-center">Get Started Free</Link>
-              <Link href="/pricing" className="btn-ghost w-full sm:w-auto text-center">See Pricing</Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 relative z-10">
+              <Link href="/download" className="px-8 py-4 rounded-xl font-bold text-lg transition-all flex items-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #00f0ff, #7c3aed)', color: 'white' }}>
+                Start Scraping For Free
+              </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </section >
-    </>
+      </section>
+    </div>
   )
 }

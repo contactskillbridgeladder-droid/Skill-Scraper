@@ -6,9 +6,13 @@ import { PLANS } from '@/lib/supabase'
 
 export default function PricingPage() {
     return (
-        <>
+        <div className="w-full min-h-screen relative overflow-hidden" style={{ background: '#0a0f1a' }}>
+            {/* Background Ambience */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-20 pointer-events-none" style={{ background: 'linear-gradient(to right, #00f0ff, #7c3aed)' }} />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-10 pointer-events-none" style={{ background: 'linear-gradient(to left, #7c3aed, #00f0ff)' }} />
+
             {/* Header */}
-            <section className="w-full" style={{ paddingTop: '160px', paddingBottom: '40px' }}>
+            <section className="w-full relative z-10" style={{ paddingTop: '160px', paddingBottom: '40px' }}>
                 <div className="container-main text-center">
                     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
                         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }} className="font-black tracking-[-0.03em] mb-4">
@@ -22,7 +26,7 @@ export default function PricingPage() {
             </section>
 
             {/* Cards */}
-            <section className="w-full" style={{ paddingBottom: '80px' }}>
+            <section className="w-full relative z-10" style={{ paddingBottom: '80px' }}>
                 <div className="container-main">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         {Object.entries(PLANS).map(([key, plan], i) => (
@@ -81,6 +85,6 @@ export default function PricingPage() {
                     </motion.div>
                 </div>
             </section>
-        </>
+        </div>
     )
 }

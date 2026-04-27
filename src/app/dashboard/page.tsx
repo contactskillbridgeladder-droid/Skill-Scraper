@@ -235,17 +235,23 @@ export default function DashboardPage() {
                         className="glass flex flex-col justify-center gap-4">
                         <h3 className="text-xl font-semibold mb-2 tracking-tight">Quick Actions</h3>
 
-                        <a href="/skill-scraper-v1.7.3.zip" download
+                        <a href="/skill-scraper-v2.0.0.zip" download
                             className="btn-glow w-full !justify-start !pl-6 !gap-4 !text-[14px]"
                             style={{ boxShadow: '0 0 20px rgba(0,240,255,0.2)' }}>
-                            <span className="text-xl">⬇️</span> Download Extension Bundle
+                            <span className="text-xl">⬇️</span> Download Extension Bundle (v2.0)
                         </a>
                         <Link href="/upload-payment" className="btn-ghost w-full !justify-start !pl-6 !gap-4 !text-[14px]">
                             <span className="text-xl">💳</span> Upload Payment Verification
                         </Link>
-                        <Link href="/upgrade" className="btn-ghost w-full !justify-start !pl-6 !gap-4 !text-[14px]">
-                            <span className="text-xl">🛍️</span> Browse Upgrade Packages
-                        </Link>
+                        {plan?.plan === 'enterprise' ? (
+                            <Link href="/enterprise" className="btn-glow w-full !justify-start !pl-6 !gap-4 !text-[14px]" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', borderColor: '#22c55e' }}>
+                                <span className="text-xl">🧠</span> Open AI Enterprise Hub
+                            </Link>
+                        ) : (
+                            <Link href="/upgrade" className="btn-ghost w-full !justify-start !pl-6 !gap-4 !text-[14px]">
+                                <span className="text-xl">🛍️</span> Browse Upgrade Packages
+                            </Link>
+                        )}
                     </motion.div>
                 </div>
 
