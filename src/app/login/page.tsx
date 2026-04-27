@@ -112,6 +112,14 @@ function LoginInner() {
                             localStorage.removeItem('referral_code')
                         } catch (_) { /* silent */ }
                     }
+                    // Send welcome email
+                    try {
+                        await fetch('/api/notify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'welcome', email, name })
+                        })
+                    } catch (_) { /* silent */ }
                 }
                 setSuccess('Account created! Check your email to verify, then login.')
                 setMode('login')

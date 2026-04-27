@@ -203,6 +203,20 @@ export default function AdminPage() {
                 used: currentPlan?.used || 0
             })
         }
+        // Send approval email notification
+        try {
+            await fetch('/api/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'payment_approved',
+                    email: payment.user_email,
+                    plan: payment.plan_requested,
+                    amount: payment.amount,
+                    credits: PLANS[payment.plan_requested]?.quota || 0
+                })
+            })
+        } catch (_) { /* silent */ }
         fetchPayments()
         fetchStats()
         fetchUsers()
@@ -224,9 +238,22 @@ export default function AdminPage() {
         fetchUsers()
     }
 
-    async function handleReject(paymentId: string) {
+    async function handleReject(payment: PaymentRequest) {
         if (!confirm('Reject this payment?')) return
-        await supabase.from('payment_requests').update({ status: 'rejected' }).eq('id', paymentId)
+        await supabase.from('payment_requests').update({ status: 'rejected' }).eq('id', payment.id)
+        // Send rejection email notification
+        try {
+            await fetch('/api/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'payment_rejected',
+                    email: payment.user_email,
+                    plan: payment.plan_requested,
+                    amount: payment.amount
+                })
+            })
+        } catch (_) { /* silent */ }
         fetchPayments()
         fetchStats()
     }
@@ -658,7 +685,7 @@ export default function AdminPage() {
                                                                 className="text-sm py-2 px-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all font-medium">
                                                                 ✅ Approve
                                                             </button>
-                                                            <button onClick={() => handleReject(p.id)}
+                                                            <button onClick={() => handleReject(p)}
                                                                 className="text-sm py-2 px-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all font-medium">
                                                                 ❌ Reject
                                                             </button>
