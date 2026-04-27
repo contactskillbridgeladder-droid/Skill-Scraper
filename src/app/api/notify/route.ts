@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM_EMAIL = 'Skill Scraper <noreply@skillbridgeladder.in>'
+const FROM_EMAIL = 'Skill Scraper <noreply@Scraper.skillbridgeladder.in>'
 
 async function sendEmail(to: string, subject: string, html: string) {
     if (!RESEND_API_KEY) {
