@@ -119,7 +119,7 @@ function EnterpriseInner() {
             if (trainData?.content) setTrainingData(trainData.content)
 
             const { data: chatData } = await supabase.from('ai_chats').select('messages').eq('user_id', session.user.id).maybeSingle()
-            if (chatData?.messages?.length > 0) setMessages(chatData.messages)
+            if (chatData && chatData.messages && chatData.messages.length > 0) setMessages(chatData.messages)
         } catch (e) {
             console.warn("Training/Chat tables might not exist yet:", e)
         }
