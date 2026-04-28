@@ -50,11 +50,10 @@ export default function Home() {
 
             {/* CTA */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
-              <Link href="/download" className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #00f0ff, #7c3aed)', color: 'white', boxShadow: '0 10px 30px rgba(124,58,237,0.4)' }}>
+              <Link href="/download" className="btn-glow text-lg py-4 px-10 gap-3">
                 🚀 Download Free Extension
               </Link>
-              <Link href="/pricing" className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:bg-white/5 border border-white/10 text-white/80 hover:text-white">
+              <Link href="/pricing" className="btn-ghost text-lg py-4 px-10">
                 View Enterprise Plans
               </Link>
             </div>
@@ -113,12 +112,12 @@ export default function Home() {
             ].map((f, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1, duration: 0.5 }} viewport={{ once: true }}
-                className="bg-[#111827] border border-white/5 rounded-2xl p-8 hover:bg-[#1f2937] transition-all hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] group">
-                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl mb-6 bg-gradient-to-br from-white/5 to-white/10 border border-white/10 group-hover:border-[#00f0ff]/50 transition-colors">
+                className="glass-sm group hover:-translate-y-2 cursor-default">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl mb-6 bg-white/[0.03] border border-white/10 group-hover:border-[#00f0ff]/50 group-hover:bg-[#00f0ff]/10 transition-all shadow-inner">
                   {f.icon}
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-white">{f.title}</h3>
-                <p className="text-white/40 font-medium leading-relaxed">{f.desc}</p>
+                <h3 className="text-xl font-bold mb-3 text-white group-hover:text-[#00f0ff] transition-colors">{f.title}</h3>
+                <p className="text-white/50 font-medium leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -156,8 +155,7 @@ export default function Home() {
               Join thousands of elite sales professionals using Skill Scraper Enterprise.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-5 relative z-10">
-              <Link href="/download" className="px-8 py-4 rounded-xl font-bold text-lg transition-all flex items-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #00f0ff, #7c3aed)', color: 'white' }}>
+              <Link href="/download" className="btn-glow text-lg py-4 px-10 gap-2">
                 Start Scraping For Free
               </Link>
             </div>

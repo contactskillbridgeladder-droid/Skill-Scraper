@@ -412,27 +412,27 @@ Be concise, actionable and specific. When writing scripts, use real data from th
                         )}
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-[#111827] border border-white/5 p-5 rounded-xl">
+                            <div className="glass-sm">
                                 <div className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">Total Extracted</div>
-                                <div className="text-3xl font-black text-white">{leads.length}</div>
+                                <div className="text-4xl font-black text-white">{leads.length}</div>
                             </div>
-                            <div className="bg-[#111827] border border-white/5 p-5 rounded-xl">
+                            <div className="glass-sm">
                                 <div className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">With Direct Phone</div>
-                                <div className="text-3xl font-black text-[#00f0ff]">{withPhoneCount}</div>
+                                <div className="text-4xl font-black text-[#00f0ff]">{withPhoneCount}</div>
                             </div>
-                            <div className="bg-[#111827] border border-white/5 p-5 rounded-xl">
+                            <div className="glass-sm">
                                 <div className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">No Website (High Value)</div>
-                                <div className="text-3xl font-black text-[#f59e0b]">{noWebsiteCount}</div>
+                                <div className="text-4xl font-black text-[#f59e0b]">{noWebsiteCount}</div>
                             </div>
-                            <div className="bg-[#111827] border border-white/5 p-5 rounded-xl">
+                            <div className="glass-sm">
                                 <div className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">Sales Outreach</div>
-                                <div className="text-3xl font-black text-[#22c55e]">{calledCount}</div>
+                                <div className="text-4xl font-black text-[#22c55e]">{calledCount}</div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Chart 1: Industry Penetration */}
-                            <div className="bg-[#111827] border border-white/5 p-6 rounded-xl h-[350px] flex flex-col min-w-0 relative">
+                            <div className="glass-sm h-[350px] flex flex-col min-w-0 relative">
                                 <h3 className="text-white font-semibold mb-4 shrink-0">Industry Penetration</h3>
                                 <div className="flex-1 w-full relative">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -440,7 +440,7 @@ Be concise, actionable and specific. When writing scripts, use real data from th
                                             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                                             <XAxis dataKey="name" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
                                             <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                                            <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }} cursor={{ fill: '#ffffff05' }} />
+                                            <Tooltip contentStyle={{ backgroundColor: 'rgba(15,15,25,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff', backdropFilter: 'blur(10px)' }} cursor={{ fill: '#ffffff05' }} />
                                             <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]}>
                                                 {indChartData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -452,7 +452,7 @@ Be concise, actionable and specific. When writing scripts, use real data from th
                             </div>
 
                             {/* Chart 2: Timeline */}
-                            <div className="bg-[#111827] border border-white/5 p-6 rounded-xl h-[350px] flex flex-col min-w-0 relative">
+                            <div className="glass-sm h-[350px] flex flex-col min-w-0 relative">
                                 <h3 className="text-white font-semibold mb-4 shrink-0">Extraction Timeline</h3>
                                 <div className="flex-1 w-full relative">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -466,7 +466,7 @@ Be concise, actionable and specific. When writing scripts, use real data from th
                                             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                                             <XAxis dataKey="date" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
                                             <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                                            <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
+                                            <Tooltip contentStyle={{ backgroundColor: 'rgba(15,15,25,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff', backdropFilter: 'blur(10px)' }} />
                                             <Area type="monotone" dataKey="count" stroke="#00f0ff" fillOpacity={1} fill="url(#colorCount)" />
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -477,7 +477,7 @@ Be concise, actionable and specific. When writing scripts, use real data from th
                 )}
 
                 {currentTab === 'ai' && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="h-[calc(100vh-220px)] flex flex-col bg-[#111827] border border-white/5 rounded-xl overflow-hidden shadow-2xl relative z-10">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="h-[calc(100vh-220px)] flex flex-col glass !p-0 overflow-hidden shadow-[0_0_50px_rgba(0,240,255,0.1)] relative z-10">
                         {/* Chat Header */}
                         <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/5">
                             <div className="flex items-center gap-3">
@@ -544,7 +544,7 @@ Be concise, actionable and specific. When writing scripts, use real data from th
 
                 {currentTab === 'training' && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-6">
-                        <div className="bg-[#111827] border border-white/5 rounded-xl p-8 shadow-2xl relative z-10">
+                        <div className="glass shadow-2xl relative z-10">
                             <h2 className="text-2xl font-bold mb-2 flex items-center gap-3">
                                 <span className="text-[#22c55e]">🧠</span> AI Training & Methods
                             </h2>
@@ -579,7 +579,7 @@ Be concise, actionable and specific. When writing scripts, use real data from th
 
                 {currentTab === 'settings' && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto space-y-6">
-                        <div className="bg-[#111827] border border-white/5 rounded-xl p-8 shadow-2xl relative z-10">
+                        <div className="glass shadow-2xl relative z-10">
                             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
                                 <span>⚙️</span> AI Model Configuration
                             </h2>
